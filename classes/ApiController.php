@@ -48,24 +48,30 @@ class ApiController extends Controller
         $this->input = request()->isJson() ? request()->json() : request();
         $this->data = $this->input->all();
 
-        // Handle error
-        App::error(function(\Exception $e) {
-            header("Access-Control-Allow-Origin: *");
-            $trace = $e->getTraceAsString();
+        if (app()->get('router')->getCurrentRoute()->controller === null) {
+            /**
+             * @desc Handle error (do not handle errors if running from cms controller)
+             * CmsController has been defined on this point if ApiController call from OctoberCMS components
+             * But if that api query with api routes - controller not defined on this point
+             */
+            App::error(function (\Exception $e) {
+                header("Access-Control-Allow-Origin: *");
+                $trace = $e->getTraceAsString();
 
-            $error = [
-                'error' => [
-                    'code' => 'INTERNAL_ERROR',
-                    'http_code' => 500,
-                    'message' => $e->getMessage(),
-                ],
-            ];
+                $error = [
+                    'error' => [
+                        'code' => 'INTERNAL_ERROR',
+                        'http_code' => 500,
+                        'message' => $e->getMessage(),
+                    ],
+                ];
 
-            if (Config::get('app.debug'))
-                $error['trace'] = $e->getTrace();
+                if (Config::get('app.debug'))
+                    $error['trace'] = $e->getTrace();
 
-            return $error;
-        });
+                return $error;
+            });
+        }
 
         $this->extendableConstruct();
     }

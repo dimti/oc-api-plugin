@@ -76,9 +76,9 @@ class ApiController extends Controller
         $this->extendableConstruct();
     }
 
-    public function withInput(array $input): self
+    public function withData(array $data): self
     {
-        $this->input = $input;
+        $this->data = $data;
 
         return $this;
     }

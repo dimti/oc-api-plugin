@@ -2,13 +2,12 @@
 
 use App;
 use Input;
-use Event;
 use Config;
 use Closure;
+use Cache;
+use October\Rain\Extension\ExtendableTrait;
 use Response;
-use Exception;
 use SimpleXMLElement;
-use System\Models\File;
 use Illuminate\Routing\Controller;
 use Symfony\Component\Yaml\Dumper as YamlDumper;
 use League\Fractal\Manager;
@@ -18,11 +17,25 @@ use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 
 class ApiController extends Controller
 {
-    use \October\Rain\Extension\ExtendableTrait;
+    use ExtendableTrait;
 
     public $implement;
-    protected $input, $data;
+
+    protected $input;
+
+    protected $data;
+
 	protected $statusCode = 200;
+
+    private bool $forceArrayOutput = false;
+
+    private bool $forceInvalidateCache = false;
+
+    private array $allowedHashData = [];
+
+    private int $cacheInvalidateInMinutes = 20;
+
+    private string $mimeType;
 
 	const CODE_WRONG_ARGS = 'WRONG_ARGS';
     const CODE_NOT_FOUND = 'NOT_FOUND';
@@ -81,6 +94,80 @@ class ApiController extends Controller
         $this->data = $data;
 
         return $this;
+    }
+
+    public function withForceArrayOutput(?bool $forceArrayOutput = true): self
+    {
+        $this->forceArrayOutput = true;
+
+        return $this;
+    }
+
+    public function withCacheInvalidate(int $cacheInvalidateInMinutes): self
+    {
+        $this->cacheInvalidateInMinutes = $cacheInvalidateInMinutes;
+
+        return $this;
+    }
+
+    public function withForceInvalidateCache(bool $forceInvalidateCache = true): self
+    {
+        $this->forceInvalidateCache = $forceInvalidateCache;
+
+        return $this;
+    }
+
+    private function getCacheInvalidate(): int
+    {
+        return $this->cacheInvalidateInMinutes * 60;
+    }
+
+    public function withAllowedHashData(array $allowedHashData): self
+    {
+        $this->allowedHashData = $allowedHashData;
+
+        return $this;
+    }
+
+    private function getHashedPayload(): string
+    {
+        return md5(serialize(array_merge(
+            [$this->getMimeType(), $this->forceArrayOutput, input('includes'), input('excludes')],
+            array_filter($this->data, fn ($key) => in_array($key, $this->allowedHashData), ARRAY_FILTER_USE_KEY)
+        )));
+    }
+
+    private function hasMimeType(): bool
+    {
+        return isset($this->mimeType) && $this->mimeType;
+    }
+
+    private function getMimeType(): string
+    {
+        if (!$this->hasMimeType()) {
+            switch ($mimeType = $this->getMimeTypeFromServerHeader()) {
+                case 'application/json':
+                case 'application/x-yaml':
+                case 'application/xml':
+                    $this->mimeType = $mimeType;
+                    break;
+            }
+        }
+
+        return $this->hasMimeType() ? $this->mimeType : '';
+    }
+
+    public function cached(Closure $callback, string $cacheKey, ?array $cacheTags = null)
+    {
+        $cacheKey .= '::' . $this->getHashedPayload();
+
+        $cache = isset($cacheTags) && $cacheTags ? Cache::tags($cacheTags) : app()->get('cache');
+
+        if ($this->forceInvalidateCache) {
+            $cache->forget($cacheKey);
+        }
+
+        return $cache->remember($cacheKey, $this->getCacheInvalidate(), $callback);
     }
 
     /**
@@ -157,19 +244,26 @@ class ApiController extends Controller
         return $this->respondWithArray($rootScope->toArray());
     }
 
-    protected function respondWithArray(array $array, array $headers = [])
+    private function getMimeTypeFromServerHeader()
     {
         $mimeTypeRaw = Input::server('HTTP_ACCEPT', '*/*');
 
-        // If its empty or has */* then default to JSON
         if ($mimeTypeRaw === '*/*') {
-            $mimeType = 'application/json';
+            return 'application/json';
         } else {
-             // You will probably want to do something intelligent with charset if provided.
-            // This chapter just assumes UTF8 everything everywhere.
-            $mimeParts = (array) preg_split( "/(,|;)/", $mimeTypeRaw );
-            $mimeType = strtolower(trim($mimeParts[0]));
+            $mimeParts = (array) preg_split( "/(,|;)/", $mimeTypeRaw);
+
+            return strtolower(trim($mimeParts[0]));
         }
+    }
+
+    protected function respondWithArray(array $array, array $headers = [])
+    {
+        if ($this->forceArrayOutput) {
+            return $array;
+        }
+
+        $mimeType = $this->getMimeType();
 
         switch ($mimeType) {
             case 'application/json':
@@ -191,7 +285,7 @@ class ApiController extends Controller
                     'error' => [
                         'code' => static::CODE_INVALID_MIME_TYPE,
                         'http_code' => 415,
-                        'message' => sprintf('Content of type %s is not supported.', $mimeType),
+                        'message' => sprintf('Content of type %s is not supported.', $this->getMimeTypeFromServerHeader()),
                     ]
                 ]);
                 $mimeType = 'application/json';

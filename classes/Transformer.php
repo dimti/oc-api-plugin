@@ -3,6 +3,7 @@
 use Closure;
 use League\Fractal\Scope;
 use League\Fractal\TransformerAbstract;
+use System\Models\File;
 
 abstract class Transformer extends TransformerAbstract
 {
@@ -100,38 +101,26 @@ abstract class Transformer extends TransformerAbstract
         return array_only($file->toArray(), ['file_name', 'file_size', 'path']);
     }
 
-    protected function image($file, Array $customSizes = [], $replace = false)
+    protected function image(?File $file, ?array $customSizes = [], $includeOrigin = false)
     {
-        if (!$file)
+        if (!isset($file) || $file === null) {
             return null;
+        }
 
-        $image = [
-            'original' => $file->path,
-        ];
+        $image = [];
+
+        if (!$customSizes || $includeOrigin) {
+            $image['original'] = $file->path;
+        }
 
         // If the custom size is not array
-        if (! is_array(reset($customSizes)) && count($customSizes) >= 2) {
+        if (!is_array(reset($customSizes)) && count($customSizes) >= 2) {
             $customSizes = [
-                'default' => $customSizes,
+                'thumb' => $customSizes,
             ];
         }
 
-        if ($replace) {
-            $sizes = $customSizes;
-        } else {
-            $sizes = array_merge([
-                'small' => [160, 160, 'crop'],
-                'medium' => [240, 240, 'crop'],
-                'large' => [800, 800, 'crop'],
-                'thumb' => [480, 480],
-            ], $customSizes);
-        }
-
-        if (!count($sizes)) {
-            return $image['original'];
-        }
-
-        foreach ($sizes as $name => $size) {
+        foreach ($customSizes as $name => $size) {
             $image[$name] = call_user_func_array([$file, 'getThumb'], $size);
         }
 

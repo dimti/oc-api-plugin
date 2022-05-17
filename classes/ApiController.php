@@ -157,7 +157,7 @@ class ApiController extends Controller
         return $this->hasMimeType() ? $this->mimeType : '';
     }
 
-    public function cached(Closure $callback, string $cacheKey, ?array $cacheTags = null)
+    public function cached(string $cacheKey, Closure $callback, ?array $cacheTags = null)
     {
         if (Config::get('app.debug') && !Config::get('debug.enable_api_cache')) {
             return $callback();
@@ -172,6 +172,11 @@ class ApiController extends Controller
 
             return $cache->remember($cacheKey, $this->getCacheInvalidate(), $callback);
         }
+    }
+
+    public function cachedTags(array $cacheTags, string $cacheKey, Closure $callback)
+    {
+        return $this->cached($cacheKey, $callback, $cacheTags);
     }
 
     /**

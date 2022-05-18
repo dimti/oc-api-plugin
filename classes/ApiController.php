@@ -1,6 +1,7 @@
 <?php namespace Octobro\API\Classes;
 
 use App;
+use Illuminate\Http\Request;
 use Input;
 use Config;
 use Closure;
@@ -19,46 +20,42 @@ class ApiController extends Controller
 {
     use ExtendableTrait;
 
-    public $implement;
-
-    protected $input;
-
-    protected $data;
-
-	protected $statusCode = 200;
-
-    private bool $forceArrayOutput = false;
-
-    private bool $forceInvalidateCache = false;
-
-    private array $allowedHashData = [];
-
-    private int $cacheInvalidateInMinutes = 20;
-
-    private string $mimeType;
-
-	const CODE_WRONG_ARGS = 'WRONG_ARGS';
+    const CODE_WRONG_ARGS = 'WRONG_ARGS';
     const CODE_NOT_FOUND = 'NOT_FOUND';
     const CODE_INTERNAL_ERROR = 'INTERNAL_ERROR';
     const CODE_UNAUTHORIZED = 'UNAUTHORIZED';
     const CODE_FORBIDDEN = 'FORBIDDEN';
     const CODE_INVALID_MIME_TYPE = 'INVALID_MIME_TYPE';
 
+    public $implement;
+
+    protected array $data;
+
+    protected Request $input;
+
+	protected $statusCode = 200;
+
+    protected InputBag $inputBag;
+
+    private bool $forceArrayOutput = false;
+
+    private bool $forceInvalidateCache = false;
+
+    private array $allowedHashData = [
+        'page',
+        'number',
+    ];
+
+    private int $cacheInvalidateInMinutes = 20;
+
+    private string $mimeType;
+
     public function __construct(Manager $fractal)
     {
         $this->fractal = $fractal;
 
-        // Including data
-        if (Input::get('include')) {
-            $this->fractal->parseIncludes(Input::get('include'));
-        }
-
-        // Excluding data
-        if (Input::get('exclude')) {
-            $this->fractal->parseExcludes(Input::get('exclude'));
-        }
-
         $this->input = request()->isJson() ? request()->json() : request();
+
         $this->data = $this->input->all();
 
         if (app()->get('router')->getCurrentRoute()->controller === null) {
@@ -122,9 +119,12 @@ class ApiController extends Controller
         return $this->cacheInvalidateInMinutes * 60;
     }
 
-    public function withAllowedHashData(array $allowedHashData): self
+    public function withAllowedHashData(array $allowedHashData, ?bool $force = false): self
     {
-        $this->allowedHashData = $allowedHashData;
+        $this->allowedHashData = isset($force) && $force ?
+            $allowedHashData :
+            array_merge($this->allowedHashData, $allowedHashData)
+        ;
 
         return $this;
     }
@@ -222,9 +222,46 @@ class ApiController extends Controller
         return $this;
     }
 
+    private function fractalizeInputBag()
+    {
+        // Including data
+        if ($this->getInputBag()->hasInclude()) {
+            $this->fractal->parseIncludes($this->getInputBag()->getInclude());
+        }
+
+        // Excluding data
+        if ($this->getInputBag()->hasExclude()) {
+            $this->fractal->parseExcludes($this->getInputBag()->getExclude());
+        }
+    }
+
+    /**
+     * @return InputBag
+     */
+    public function getInputBag(): InputBag
+    {
+        return $this->inputBag ?? new InputBag;
+    }
+
+    public function hasInputBag(): bool
+    {
+        return isset($this->inputBag);
+    }
+
+    public function withInputBag(InputBag $inputBag, ?bool $force = false): self
+    {
+        if ($force || !$this->hasInputBag()) {
+            $this->inputBag = $inputBag;
+        }
+
+        return $this;
+    }
+
     protected function respondWithItem($item, $callback, $key = null)
     {
         $resource = new Item($item, $callback, $key);
+
+        $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
 
@@ -234,6 +271,8 @@ class ApiController extends Controller
     protected function respondWithCollection($collection, $callback, $key = null)
     {
         $resource = new Collection($collection, $callback, $key);
+
+        $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
 
@@ -247,6 +286,8 @@ class ApiController extends Controller
         $resource = new Collection($collection, $callback, $key);
 
         $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));
+
+        $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
 

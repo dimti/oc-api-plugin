@@ -157,14 +157,28 @@ class ApiController extends Controller
         return $this->hasMimeType() ? $this->mimeType : '';
     }
 
-    public function cached(string $cacheKey, Closure $callback, ?array $cacheTags = null)
+    public function cached(string $cacheKey, Closure $callback, ?array $cacheTags = [])
     {
         if (Config::get('app.debug') && !Config::get('debug.enable_api_cache')) {
             return $callback();
         } else {
             $cacheKey .= '::' . $this->getHashedPayload();
 
-            $cache = isset($cacheTags) && $cacheTags ? Cache::tags($cacheTags) : app()->get('cache');
+            $cacheStore = app()->get('cache')->store()->getStore();
+
+            if (method_exists($cacheStore, 'tags')) {
+                $cacheTags = array_merge($cacheTags, [ApiController::class]);
+
+                $cache = Cache::tags($cacheTags);
+            } else {
+                if ($cacheTags) {
+                    app('log')->warning(
+                        'Your cache store doesnt support tags. Tags: ' . implode(', ', $cacheTags)
+                    );
+                }
+
+                $cache = app()->get('cache');
+            }
 
             if ($this->forceInvalidateCache) {
                 $cache->forget($cacheKey);

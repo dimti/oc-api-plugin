@@ -1,10 +1,13 @@
 <?php namespace Octobro\API;
 
 use App;
+use Octobro\API\Classes\Registration\ExtendServiceContainer;
 use System\Classes\PluginBase;
 
 class Plugin extends PluginBase
 {
+    use ExtendServiceContainer;
+
     public function boot()
     {
         // Register Cors
@@ -18,6 +21,10 @@ class Plugin extends PluginBase
 
     public function register()
     {
+        $this->registerServices();
+
+        $this->registerAliases();
+
         $this->registerConsoleCommand('octobro.api.transformer', 'Octobro\API\Console\CreateTransformer');
     }
 }

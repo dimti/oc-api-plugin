@@ -3,12 +3,15 @@
 use Illuminate\Foundation\AliasLoader;
 use Octobro\API\Classes\ApiResponder;
 use Octobro\API\Classes\Facades;
+use Octobro\API\Classes\InputBag;
 
 trait ExtendServiceContainer
 {
     protected function registerServices(): void
     {
         app()->singleton('api.responder', ApiResponder::class);
+
+        app()->bind(InputBag::class);
     }
 
     private function registerAliases(): void

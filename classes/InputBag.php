@@ -1,50 +1,62 @@
 <?php namespace Octobro\API\Classes;
 
-use Illuminate\Http\Request;
-use Input;
+use October\Rain\Exception\ValidationException;
+use Validator;
 
 class InputBag
 {
-    protected array $include;
+    private array $input;
 
-    protected array $exclude;
-
-    public function __construct(array $include = [], array $exclude = [])
+    public function __construct(?array $input = [])
     {
-        $this->include = Input::has('include') ? explode(',', Input::get('include')) : $include;
+        $this->input = $input;
+    }
 
-        $this->exclude = Input::has('exclude') ? explode(',', Input::get('exclude')) : $exclude;
+    public function setInput(array $input): void
+    {
+        $this->input = $input;
+    }
+
+    public function fillFromRequest(): void
+    {
+        $this->input = (request()->isJson() ? request()->json() : request())->all();
+    }
+
+    public function has(string $key): bool
+    {
+        return array_has($this->input, $key);
     }
 
     /**
-     * @return array|mixed
+     * @param string $key
+     * @param string|null $default
+     * @return mixed
      */
-    public function getInclude()
+    public function get(string $key, ?string $default = null)
     {
-        return $this->include;
+        return array_get($this->input, $key, $default);
+    }
+
+    public function all(): array
+    {
+        return $this->input;
     }
 
     /**
-     * @return array|mixed
+     * @param array $rules
+     * @return \Illuminate\Validation\Validator
+     * @throws ValidationException
      */
-    public function getExclude()
+    public function validate(array $rules): \Illuminate\Validation\Validator
     {
-        return $this->exclude;
-    }
+        $validator = Validator::make($this->input, $rules);
 
-    /**
-     * @return array|mixed
-     */
-    public function hasInclude()
-    {
-        return isset($this->include) && $this->include;
-    }
+        if ($validator->fails()) {
+            assert($validator instanceof \Illuminate\Validation\Validator);
 
-    /**
-     * @return array|mixed
-     */
-    public function hasExclude()
-    {
-        return isset($this->exclude) && $this->exclude;
+            throw new ValidationException($validator);
+        }
+
+        return $validator;
     }
 }

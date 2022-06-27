@@ -1,7 +1,6 @@
 <?php namespace Octobro\API\Classes;
 
 use App;
-use Illuminate\Http\Request;
 use Input;
 use Config;
 use Closure;
@@ -27,15 +26,15 @@ class ApiController extends Controller
     const CODE_FORBIDDEN = 'FORBIDDEN';
     const CODE_INVALID_MIME_TYPE = 'INVALID_MIME_TYPE';
 
-    public $implement;
+    public array $implement;
 
-    protected array $data;
+    public Manager $fractal;
 
-    protected Request $input;
+    public InputBag $inputBag;
 
 	protected $statusCode = 200;
 
-    protected InputBag $inputBag;
+    protected FractalInputBag $fractalInputBag;
 
     private bool $forceArrayOutput = false;
 
@@ -50,15 +49,15 @@ class ApiController extends Controller
 
     private string $mimeType;
 
-    public function __construct(Manager $fractal)
+    public function __construct(Manager $fractal, InputBag $inputBag)
     {
         $this->fractal = $fractal;
 
-        $this->input = request()->isJson() ? request()->json() : request();
-
-        $this->data = $this->input->all();
+        $this->inputBag = $inputBag;
 
         if (app()->get('router')->getCurrentRoute()->controller === null) {
+            $this->inputBag->fillFromRequest();
+
             /**
              * @desc Handle error (do not handle errors if running from cms controller)
              * CmsController has been defined on this point if ApiController call from OctoberCMS components
@@ -86,9 +85,9 @@ class ApiController extends Controller
         $this->extendableConstruct();
     }
 
-    public function withData(array $data): self
+    public function withInput(array $input): self
     {
-        $this->data = $data;
+        $this->inputBag->setInput($input);
 
         return $this;
     }
@@ -133,7 +132,7 @@ class ApiController extends Controller
     {
         return md5(serialize(array_merge(
             [$this->getMimeType(), $this->forceArrayOutput, input('includes'), input('excludes')],
-            array_filter($this->data, fn ($key) => in_array($key, $this->allowedHashData), ARRAY_FILTER_USE_KEY)
+            array_filter($this->inputBag->all(), fn ($key) => in_array($key, $this->allowedHashData), ARRAY_FILTER_USE_KEY)
         )));
     }
 
@@ -206,11 +205,11 @@ class ApiController extends Controller
      */
     public function __call($method, $parameters)
     {
-        if (isset($this->extensionData['dynamicMethods'][$method])) {
-            return call_user_func_array($this->extensionData['dynamicMethods'][$method], $parameters);
+        if (method_exists($this, $method)) {
+            return call_user_func_array([$this, $method], $parameters);
+        } else {
+            return $this->extendableCall($method, $parameters);
         }
-
-        return call_user_func_array([$this, $method], $parameters);
     }
 
     /**
@@ -239,33 +238,33 @@ class ApiController extends Controller
     private function fractalizeInputBag()
     {
         // Including data
-        if ($this->getInputBag()->hasInclude()) {
-            $this->fractal->parseIncludes($this->getInputBag()->getInclude());
+        if ($this->getFractalInputBag()->hasInclude()) {
+            $this->fractal->parseIncludes($this->getFractalInputBag()->getInclude());
         }
 
         // Excluding data
-        if ($this->getInputBag()->hasExclude()) {
-            $this->fractal->parseExcludes($this->getInputBag()->getExclude());
+        if ($this->getFractalInputBag()->hasExclude()) {
+            $this->fractal->parseExcludes($this->getFractalInputBag()->getExclude());
         }
     }
 
     /**
-     * @return InputBag
+     * @return FractalInputBag
      */
-    public function getInputBag(): InputBag
+    public function getFractalInputBag(): FractalInputBag
     {
-        return $this->inputBag ?? new InputBag;
+        return $this->fractalInputBag ?? new FractalInputBag;
     }
 
-    public function hasInputBag(): bool
+    public function hasFractalInputBag(): bool
     {
-        return isset($this->inputBag);
+        return isset($this->fractalInputBag);
     }
 
-    public function withInputBag(InputBag $inputBag, ?bool $force = false): self
+    public function withFractalInputBag(FractalInputBag $fractalInputBag, ?bool $force = false): self
     {
-        if ($force || !$this->hasInputBag()) {
-            $this->inputBag = $inputBag;
+        if ($force || !$this->hasFractalInputBag()) {
+            $this->fractalInputBag = $fractalInputBag;
         }
 
         return $this;

@@ -270,7 +270,7 @@ class ApiController extends Controller
         return $this;
     }
 
-    protected function respondWithItem($item, $callback, $key = null)
+    public function respondWithItem($item, $callback, $key = null)
     {
         $resource = new Item($item, $callback, $key);
 
@@ -281,7 +281,7 @@ class ApiController extends Controller
         return $this->respondWithArray($rootScope->toArray());
     }
 
-    protected function respondWithCollection($collection, $callback, $key = null)
+    public function respondWithCollection($collection, $callback, $key = null)
     {
         $resource = new Collection($collection, $callback, $key);
 
@@ -292,7 +292,7 @@ class ApiController extends Controller
         return $this->respondWithArray($rootScope->toArray());
     }
 
-    protected function respondWithPaginator($paginator, $callback, $key = null)
+    public function respondWithPaginator($paginator, $callback, $key = null)
     {
         $collection = $paginator->getCollection();
 

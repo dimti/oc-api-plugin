@@ -270,6 +270,11 @@ class ApiController extends Controller
         return $this;
     }
 
+    protected function clearFractalInputBag(): void
+    {
+        unset($this->fractalInputBag);
+    }
+
     public function respondWithItem($item, $callback, $key = null)
     {
         $resource = new Item($item, $callback, $key);
@@ -277,6 +282,8 @@ class ApiController extends Controller
         $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
+
+        $this->clearFractalInputBag();
 
         return $this->respondWithArray($rootScope->toArray());
     }
@@ -288,6 +295,8 @@ class ApiController extends Controller
         $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
+
+        $this->clearFractalInputBag();
 
         return $this->respondWithArray($rootScope->toArray());
     }
@@ -303,6 +312,8 @@ class ApiController extends Controller
         $this->fractalizeInputBag();
 
         $rootScope = $this->fractal->createData($resource);
+
+        $this->clearFractalInputBag();
 
         return $this->respondWithArray($rootScope->toArray());
     }

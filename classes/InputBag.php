@@ -44,12 +44,14 @@ class InputBag
 
     /**
      * @param array $rules
+     * @param string|null $nestedKey
      * @return \Illuminate\Validation\Validator
      * @throws ValidationException
      */
-    public function validate(array $rules): \Illuminate\Validation\Validator
+    public function validate(array $rules, ?string $nestedKey = null): \Illuminate\Validation\Validator
     {
-        $validator = Validator::make($this->input, $rules);
+
+        $validator = Validator::make($nestedKey ? $this->input[$nestedKey] : $this->input, $rules);
 
         if ($validator->fails()) {
             assert($validator instanceof \Illuminate\Validation\Validator);

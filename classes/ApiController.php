@@ -26,7 +26,7 @@ class ApiController extends Controller
     const CODE_FORBIDDEN = 'FORBIDDEN';
     const CODE_INVALID_MIME_TYPE = 'INVALID_MIME_TYPE';
 
-    public array $implement;
+    public array $implement = [];
 
     public Manager $fractal;
 

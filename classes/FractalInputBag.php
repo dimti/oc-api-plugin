@@ -14,9 +14,9 @@ class FractalInputBag
 
     public function __construct(array $include = [], array $exclude = [])
     {
-        $this->include = Input::has('include') ? explode(',', Input::get('include')) : $include;
+        $this->include = $this->getInputAsArray('include') ?: $include;
 
-        $this->exclude = Input::has('exclude') ? explode(',', Input::get('exclude')) : $exclude;
+        $this->exclude = $this->getInputAsArray('exclude') ?: $exclude;
     }
 
     /**
@@ -49,5 +49,25 @@ class FractalInputBag
     public function hasExclude()
     {
         return isset($this->exclude) && $this->exclude;
+    }
+
+    /**
+     * Parse input by key and create an array of data
+     * 
+     * @return array
+     */
+    private function getInputAsArray(string $key): array
+    {
+        $data = Input::get($key, []);
+
+        if (is_array($data)) {
+            return $data;
+        }
+
+        if (is_string($data)) {
+            return explode(',', $data);
+        }
+
+        return [$data];
     }
 }

@@ -58,14 +58,8 @@ class ApiController extends Controller
         if (app()->get('router')->getCurrentRoute()->controller === null) {
             $this->inputBag->fillFromRequest();
 
-            /**
-             * @desc Handle error (do not handle errors if running from cms controller)
-             * CmsController has been defined on this point if ApiController call from OctoberCMS components
-             * But if that api query with api routes - controller not defined on this point
-             */
-            App::error(function (\Exception $e) {
+            $errorHandler = function (\Exception $e) {
                 header("Access-Control-Allow-Origin: *");
-                $trace = $e->getTraceAsString();
 
                 $error = [
                     'error' => [
@@ -75,11 +69,20 @@ class ApiController extends Controller
                     ],
                 ];
 
-                if (Config::get('app.debug'))
-                    $error['trace'] = $e->getTrace();
+                if (Config::get('app.debug')) {
+                    $error['trace'] = explode("\n", $e->getTraceAsString());
+                }
 
                 return $error;
-            });
+            };
+
+            /**
+             * @desc Handle error (do not handle errors if running from cms controller)
+             * CmsController has been defined on this point if ApiController call from OctoberCMS components
+             * But if that api query with api routes - controller not defined on this point
+             */
+            App::error($errorHandler);
+            App::fatal($errorHandler);
         }
 
         $this->initRepository();

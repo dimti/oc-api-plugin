@@ -82,7 +82,14 @@ class ApiController extends Controller
             });
         }
 
+        $this->initRepository();
+
         $this->extendableConstruct();
+    }
+
+    protected function initRepository(): void
+    {
+
     }
 
     public function withInput(array $input): self

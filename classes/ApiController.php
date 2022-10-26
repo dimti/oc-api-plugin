@@ -141,7 +141,7 @@ class ApiController extends Controller
     private function getHashedPayload(): string
     {
         return md5(serialize(array_merge(
-            [$this->getMimeType(), $this->forceArrayOutput, input('includes'), input('excludes')],
+            [$this->getMimeType(), $this->forceArrayOutput, $this->getFractalInputBag()->getInclude(), $this->getFractalInputBag()->getExclude()],
             array_filter($this->inputBag->all(), fn ($key) => in_array($key, $this->allowedHashData), ARRAY_FILTER_USE_KEY)
         )));
     }

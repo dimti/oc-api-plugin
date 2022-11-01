@@ -66,6 +66,8 @@ class ApiController extends Controller
                         'code' => 'INTERNAL_ERROR',
                         'http_code' => 500,
                         'message' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
                     ],
                 ];
 

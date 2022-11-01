@@ -51,7 +51,7 @@ class InputBag
     public function validate(array $rules, ?string $nestedKey = null): \Illuminate\Validation\Validator
     {
 
-        $validator = Validator::make($nestedKey ? $this->input[$nestedKey] : $this->input, $rules);
+        $validator = Validator::make($nestedKey ? array_get($this->input, $nestedKey) : $this->input, $rules);
 
         if ($validator->fails()) {
             assert($validator instanceof \Illuminate\Validation\Validator);

@@ -51,9 +51,24 @@ class FractalInputBag
         return isset($this->exclude) && $this->exclude;
     }
 
+    public function getIsExistsIncludeItem(string $includePath): bool
+    {
+        $existsIncludeItem = false;
+
+        foreach ($this->include as $includeItem) {
+            if (starts_with($includeItem, $includePath)) {
+                $existsIncludeItem = true;
+
+                break;
+            }
+        }
+
+        return $existsIncludeItem;
+    }
+
     /**
      * Parse input by key and create an array of data
-     * 
+     *
      * @return array
      */
     private function getInputAsArray(string $key): array

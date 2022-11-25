@@ -5,6 +5,7 @@ use Input;
 use Config;
 use Closure;
 use Cache;
+use October\Rain\Database\Model;
 use October\Rain\Extension\ExtendableTrait;
 use Response;
 use SimpleXMLElement;
@@ -128,6 +129,94 @@ class ApiController extends Controller
     private function getCacheInvalidate(): int
     {
         return $this->cacheInvalidateInMinutes * 60;
+    }
+
+    public function getEloquentWithFromIncludes(string $startingModelClass, array $generalWiths, ?array $except = []): array
+    {
+        $possibleWiths = [];
+
+        $getIsRelationExistsInGeneralWiths = function (string $relationName) use ($generalWiths) {
+            $relationExists = false;
+
+            foreach ($generalWiths as $with => $maybeWithClosure) {
+                if (starts_with(is_string($maybeWithClosure) ? $maybeWithClosure : $with, $relationName)) {
+                    $relationExists = true;
+
+                    break;
+                }
+            }
+
+            return $relationExists;
+        };
+
+        $nerestPossibleWiths = function (string $modelClass, array &$includeParts, array $previousParts = []) use (&$possibleWiths, $getIsRelationExistsInGeneralWiths, &$nerestPossibleWiths) {
+            $maybeRelation = array_shift($includeParts);
+
+            $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
+
+            if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
+                $model = new $modelClass;
+
+                assert($model instanceof Model);
+
+                $relationDefinition = null;
+
+                if (array_key_exists($maybeRelation, $model->belongsToMany)) {
+                    $relationDefinition = $model->belongsToMany[$maybeRelation];
+                } elseif (array_key_exists($maybeRelation, $model->belongsTo)) {
+                    $relationDefinition = $model->belongsTo[$maybeRelation];
+                } elseif (array_key_exists($maybeRelation, $model->hasMany)) {
+                    $relationDefinition = $model->hasMany[$maybeRelation];
+                } elseif (array_key_exists($maybeRelation, $model->hasOne)) {
+                    $relationDefinition = $model->hasOne[$maybeRelation];
+                } elseif (array_key_exists($maybeRelation, $model->attachOne)) {
+                    $relationDefinition = $model->attachOne[$maybeRelation];
+                } elseif (array_key_exists($maybeRelation, $model->attachMany)) {
+                    $relationDefinition = $model->attachMany[$maybeRelation];
+                }
+
+                if ($relationDefinition) {
+                    if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
+                        $possibleWiths[] = $fullMaybeRelationWithPath;
+                    }
+
+                    $previousParts[] = $maybeRelation;
+
+                    if (is_array($relationDefinition)) {
+                        $relationClassName = $relationDefinition[0];
+                    } else {
+                        $relationClassName = $relationDefinition;
+                    }
+
+                    if (count($includeParts)) {
+                        $nerestPossibleWiths($relationClassName, $includeParts, $previousParts);
+                    }
+                }
+            }
+        };
+
+        $include = $this->getFractalInputBag()->getInclude();
+
+        /*if (isset($extractPath) && $extractPath) {
+            $include = array_filter(array_map(
+                fn($includeItem) => ltrim(str_replace($extractPath, '', $includeItem), '.'),
+                array_filter($include, fn($includeItem) => starts_with($includeItem, $extractPath))
+            ));
+        }*/
+
+        if (isset($except) && $except) {
+            $include = array_filter($include, fn(string $includeItem) => !in_array($includeItem, $except));
+        }
+
+        foreach ($include as $includeItem) {
+            $includeParts = explode('.', $includeItem);
+
+            $nerestPossibleWiths($startingModelClass, $includeParts);
+        }
+
+        unset($include, $includeItem, $includeParts);
+
+        return array_merge($possibleWiths, $generalWiths);
     }
 
     public function withAllowedHashData(array $allowedHashData, ?bool $force = false): self

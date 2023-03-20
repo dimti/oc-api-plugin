@@ -131,14 +131,14 @@ class ApiController extends Controller
         return $this->cacheInvalidateInMinutes * 60;
     }
 
-    public function getEloquentWithFromIncludes(string $startingModelClass, array $generalWiths, ?array $except = []): array
+    public function getEloquentWithFromIncludes(Model $startingModelClass, array $generalWith, ?array $excludeWith = []): array
     {
         $possibleWiths = [];
 
-        $getIsRelationExistsInGeneralWiths = function (string $relationName) use ($generalWiths) {
+        $getIsRelationExistsInGeneralWiths = function (string $relationName) use ($generalWith) {
             $relationExists = false;
 
-            foreach ($generalWiths as $with => $maybeWithClosure) {
+            foreach ($generalWith as $with => $maybeWithClosure) {
                 if (starts_with(is_string($maybeWithClosure) ? $maybeWithClosure : $with, $relationName)) {
                     $relationExists = true;
 
@@ -149,16 +149,12 @@ class ApiController extends Controller
             return $relationExists;
         };
 
-        $nerestPossibleWiths = function (string $modelClass, array &$includeParts, array $previousParts = []) use (&$possibleWiths, $getIsRelationExistsInGeneralWiths, &$nerestPossibleWiths) {
+        $nerestPossibleWiths = function (Model $model, array &$includeParts, array $previousParts = []) use (&$possibleWiths, $getIsRelationExistsInGeneralWiths, &$nerestPossibleWiths) {
             $maybeRelation = array_shift($includeParts);
 
             $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
 
             if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
-                $model = new $modelClass;
-
-                assert($model instanceof Model);
-
                 $relationDefinition = null;
 
                 if (array_key_exists($maybeRelation, $model->belongsToMany)) {
@@ -189,7 +185,7 @@ class ApiController extends Controller
                     }
 
                     if (count($includeParts)) {
-                        $nerestPossibleWiths($relationClassName, $includeParts, $previousParts);
+                        $nerestPossibleWiths(new $relationClassName, $includeParts, $previousParts);
                     }
                 }
             }
@@ -204,8 +200,8 @@ class ApiController extends Controller
             ));
         }*/
 
-        if (isset($except) && $except) {
-            $include = array_filter($include, fn(string $includeItem) => !in_array($includeItem, $except));
+        if (isset($excludeWith) && $excludeWith) {
+            $include = array_filter($include, fn(string $includeItem) => !in_array($includeItem, $excludeWith));
         }
 
         foreach ($include as $includeItem) {
@@ -216,7 +212,7 @@ class ApiController extends Controller
 
         unset($include, $includeItem, $includeParts);
 
-        return array_merge($possibleWiths, $generalWiths);
+        return array_merge($possibleWiths, $generalWith);
     }
 
     public function withAllowedHashData(array $allowedHashData, ?bool $force = false): self

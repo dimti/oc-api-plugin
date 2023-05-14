@@ -1,4 +1,25 @@
-# API Framework for OctoberCMS
+# Rewrite documentation
+
+## Dynamic Includes
+
+### Config
+
+`fractal.php`
+
+Example:
+
+```php
+<?php
+
+return [
+    'defaultFileModelTransformer' => '\Author\Plugin\Transformers\FileTransformer',
+    'defaultUserModelTransformer' => '\Author\Plugin\Transformers\UserTransformer',
+    'alternativeTransformerPluginNamespaces' => ['author.plugin', 'duck.chicken'],
+];
+
+```
+
+# API Framework for OctoberCMS (Previous original Docs)
 
 It's a plugin for OctoberCMS for you that want to create an extensible and easy to use API server.
 

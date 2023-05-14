@@ -1,21 +1,32 @@
 <?php namespace Octobro\API\Classes;
 
 use Closure;
+use League\Fractal\Resource\NullResource;
 use League\Fractal\Scope;
 use League\Fractal\TransformerAbstract;
+use October\Rain\Database\Model;
+use Octobro\API\Classes\Transformer\DynamicInclude;
 use System\Models\File;
+use Config;
 
+/**
+ * @method getDynamicInclude(string $fieldName, Model $model)
+ * @see DynamicInclude::getDynamicInclude()
+ */
 abstract class Transformer extends TransformerAbstract
 {
     use \October\Rain\Extension\ExtendableTrait;
 
-    public $implement;
+    public $implement = [
+        DynamicInclude::class,
+    ];
 
     public $defaultIncludes = [];
 
     public $availableIncludes = [];
 
     protected $additionalFields = [];
+
     /**
      * Instantiate a new BackendController instance.
      */
@@ -48,11 +59,15 @@ abstract class Transformer extends TransformerAbstract
      */
     public function __call($method, $parameters)
     {
-        if (isset($this->extensionData['dynamicMethods'][$method])) {
-            return call_user_func_array($this->extensionData['dynamicMethods'][$method], $parameters);
+        if ($this->methodExists($method)) {
+            return $this->extendableCall($method, $parameters);
         }
 
-        return call_user_func_array([$this, $method], $parameters);
+        if (method_exists($this, $method)) {
+            return call_user_func_array([$this, $method], $parameters);
+        }
+
+        return $this->getDynamicInclude(camel_case(substr($method, 7)), $parameters[0]);
     }
 
     public function addField($key, $callback = null)

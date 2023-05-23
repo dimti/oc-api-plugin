@@ -238,6 +238,14 @@ class DynamicInclude extends ExtensionBase
     }
 
     /**
+     * @return string
+     */
+    public function getFieldNameSnakeCase(): string
+    {
+        return snake_case($this->fieldName);
+    }
+
+    /**
      * @return Model
      */
     public function getModel(): Model
@@ -247,7 +255,7 @@ class DynamicInclude extends ExtensionBase
 
     private function hasSimpleAttributeOrMutator(): bool
     {
-        return array_key_exists($this->getFieldName(), $this->getModel()->attributes) || $this->getModel()->hasGetMutator($this->getFieldName());
+        return array_key_exists($this->getFieldNameSnakeCase(), $this->getModel()->attributes) || $this->getModel()->hasGetMutator($this->getFieldName());
     }
 
     /**
@@ -258,9 +266,17 @@ class DynamicInclude extends ExtensionBase
         return $this->getModel()->{$this->getFieldName()};
     }
 
+    /**
+     * @return mixed|string|Model|\Illuminate\Support\Collection
+     */
+    private function getValueFromSnakeCaseField()
+    {
+        return $this->getModel()->{$this->getFieldNameSnakeCase()};
+    }
+
     private function getPrimitive(): Primitive
     {
-        return new Primitive($this->getValue());
+        return new Primitive($this->getValueFromSnakeCaseField());
     }
 
     private function hasRelation(): bool

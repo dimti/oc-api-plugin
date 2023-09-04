@@ -255,7 +255,7 @@ class ApiController extends Controller
 
     public function cached(string $cacheKey, Closure $callback, ?array $cacheTags = [])
     {
-        if (Config::get('app.debug') && !Config::get('debug.enable_api_cache')) {
+        if (!Config::get('enable.api_cache')) {
             return $callback();
         } else {
             $cacheKey .= '::' . $this->getHashedPayload();

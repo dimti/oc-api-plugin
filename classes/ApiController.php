@@ -60,8 +60,6 @@ class ApiController extends Controller
             $this->inputBag->fillFromRequest();
 
             $errorHandler = function (\Exception $e) {
-                header("Access-Control-Allow-Origin: *");
-
                 $error = [
                     'error' => [
                         'code' => 'INTERNAL_ERROR',

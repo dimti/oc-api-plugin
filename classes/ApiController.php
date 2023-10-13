@@ -153,21 +153,11 @@ class ApiController extends Controller
             $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
 
             if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
-                $relationDefinition = null;
+                $relationTypes = collect(['belongsToMany', 'belongsTo', 'hasMany', 'hasOne', 'attachOne', 'attachMany']);
 
-                if (array_key_exists($maybeRelation, $model->belongsToMany)) {
-                    $relationDefinition = $model->belongsToMany[$maybeRelation];
-                } elseif (array_key_exists($maybeRelation, $model->belongsTo)) {
-                    $relationDefinition = $model->belongsTo[$maybeRelation];
-                } elseif (array_key_exists($maybeRelation, $model->hasMany)) {
-                    $relationDefinition = $model->hasMany[$maybeRelation];
-                } elseif (array_key_exists($maybeRelation, $model->hasOne)) {
-                    $relationDefinition = $model->hasOne[$maybeRelation];
-                } elseif (array_key_exists($maybeRelation, $model->attachOne)) {
-                    $relationDefinition = $model->attachOne[$maybeRelation];
-                } elseif (array_key_exists($maybeRelation, $model->attachMany)) {
-                    $relationDefinition = $model->attachMany[$maybeRelation];
-                }
+                $appropriateRelationType = $relationTypes->filter(fn($relationTypeName) => array_key_exists($maybeRelation, $model->{$relationTypeName}))->first();
+
+                $relationDefinition = $appropriateRelationType ? $model->{$appropriateRelationType}[$maybeRelation] : null;
 
                 if ($relationDefinition) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
@@ -258,7 +248,9 @@ class ApiController extends Controller
         } else {
             $cacheKey .= '::' . $this->getHashedPayload();
 
-            $cacheStore = app()->get('cache')->store()->getStore();
+            $cacheManager = app('cache');
+
+            $cacheStore = $cacheManager->store()->getStore();
 
             if (method_exists($cacheStore, 'tags')) {
                 $cacheTags = array_merge($cacheTags, [ApiController::class]);

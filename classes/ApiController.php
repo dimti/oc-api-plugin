@@ -7,6 +7,7 @@ use Closure;
 use Cache;
 use October\Rain\Database\Model;
 use October\Rain\Extension\ExtendableTrait;
+use Octobro\API\Classes\traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;
@@ -18,7 +19,7 @@ use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 
 class ApiController extends Controller
 {
-    use ExtendableTrait;
+    use ExtendableTrait, EloquentModelRelationFinder;
 
     const CODE_WRONG_ARGS = 'WRONG_ARGS';
     const CODE_NOT_FOUND = 'NOT_FOUND';
@@ -153,27 +154,15 @@ class ApiController extends Controller
             $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
 
             if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
-                $relationTypes = collect(['belongsToMany', 'belongsTo', 'hasMany', 'hasOne', 'attachOne', 'attachMany']);
-
-                $appropriateRelationType = $relationTypes->filter(fn($relationTypeName) => array_key_exists($maybeRelation, $model->{$relationTypeName}))->first();
-
-                $relationDefinition = $appropriateRelationType ? $model->{$appropriateRelationType}[$maybeRelation] : null;
-
-                if ($relationDefinition) {
+                if ($this->hasRelation($model, $maybeRelation)) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
                         $possibleWiths[] = $fullMaybeRelationWithPath;
                     }
 
                     $previousParts[] = $maybeRelation;
 
-                    if (is_array($relationDefinition)) {
-                        $relationClassName = $relationDefinition[0];
-                    } else {
-                        $relationClassName = $relationDefinition;
-                    }
-
                     if (count($includeParts)) {
-                        $nerestPossibleWiths(new $relationClassName, $includeParts, $previousParts);
+                        $nerestPossibleWiths($this->getRelationModel($model, $maybeRelation), $includeParts, $previousParts);
                     }
                 }
             }

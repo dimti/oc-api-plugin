@@ -12,7 +12,7 @@ trait EloquentModelRelationFinder
         return $relationTypes->filter(fn($relationTypeName) => array_key_exists($mayBeRelation, $parentModel->{$relationTypeName->value}))->first();
     }
 
-    public function getRelationDefinition(Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model $parentModel, string $mayBeRelation): ?array
+    public function getRelationDefinition(Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model $parentModel, string $mayBeRelation): array|string|null
     {
         $relationType = $this->getRelationType($parentModel, $mayBeRelation);
 

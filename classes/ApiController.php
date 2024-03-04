@@ -57,7 +57,7 @@ class ApiController extends Controller
 
         $this->inputBag = $inputBag;
 
-        if (app()->get('router')->getCurrentRoute()->controller === null) {
+        if (app()->get('router')->getCurrentRoute()?->controller === null) {
             $this->inputBag->fillFromRequest();
 
             $errorHandler = function (\Exception $e) {

@@ -2,6 +2,7 @@
 
 use October\Rain\Database\Model;
 use Octobro\API\Classes\enums\Relation;
+use Octobro\API\Classes\Exceptions\OctobroApiException;
 
 trait EloquentModelRelationFinder
 {
@@ -24,7 +25,10 @@ trait EloquentModelRelationFinder
         return $this->getRelationType($parentModel, $mayBeRelation) !== null;
     }
 
-    public function getRelationModel(Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model $parentModel, string $mayBeRelation): Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model|null
+    /**
+     * @throws OctobroApiException
+     */
+    public function getRelationModelClassName(Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model $parentModel, string $mayBeRelation): string
     {
         if ($relationDefinition = $this->getRelationDefinition($parentModel, $mayBeRelation)) {
             if (is_array($relationDefinition)) {
@@ -33,9 +37,22 @@ trait EloquentModelRelationFinder
                 $relationClassName = $relationDefinition;
             }
 
-            return new $relationClassName;
+            return $relationClassName;
         }
 
-        return null;
+        throw new OctobroApiException(sprintf(
+            'Unable to get relation model class name for relation: %s',
+            $mayBeRelation,
+        ));
+    }
+
+    /**
+     * @throws OctobroApiException
+     */
+    public function getRelationModel(Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model $parentModel, string $mayBeRelation): Model|\Winter\Storm\Database\Model|\Illuminate\Database\Eloquent\Model
+    {
+        $relationClassName = $this->getRelationModelClassName($parentModel, $mayBeRelation);
+
+        return new $relationClassName;
     }
 }

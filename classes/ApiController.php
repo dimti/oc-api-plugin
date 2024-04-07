@@ -72,7 +72,7 @@ class ApiController extends Controller
                 ];
 
                 if (Config::get('app.debug')) {
-                    $error['trace'] = explode("\n", $e->getTraceAsString());
+                    $error['error']['trace'] = explode("\n", $e->getTraceAsString());
                 }
 
                 return $error;

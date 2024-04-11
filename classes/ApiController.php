@@ -62,7 +62,7 @@ class ApiController extends Controller
 
             $errorHandler = function (\Exception $e) {
                 $error = [
-                    'error' => [
+                    'errors' => [
                         'code' => 'INTERNAL_ERROR',
                         'http_code' => 500,
                         'message' => $e->getMessage(),
@@ -72,7 +72,7 @@ class ApiController extends Controller
                 ];
 
                 if (Config::get('app.debug')) {
-                    $error['error']['trace'] = explode("\n", $e->getTraceAsString());
+                    $error['errors']['trace'] = explode("\n", $e->getTraceAsString());
                 }
 
                 return $error;

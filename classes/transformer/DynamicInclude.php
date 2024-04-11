@@ -7,11 +7,14 @@ use League\Fractal\Resource\Primitive;
 use October\Rain\Database\Model;
 use October\Rain\Extension\ExtensionBase;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
+use Octobro\API\Classes\traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
 
 class DynamicInclude extends ExtensionBase
 {
+    use EloquentModelRelationFinder;
+
     private Transformer $transformer;
 
     private static string $defaultFileModelTransformer;
@@ -42,6 +45,10 @@ class DynamicInclude extends ExtensionBase
         $this->transformer = $transformer;
     }
 
+    /**
+     * @throws \ReflectionException
+     * @throws OctobroApiException
+     */
     public function getDynamicInclude(string $fieldName, Model $model)
     {
         $this->setFieldName($fieldName);
@@ -53,7 +60,9 @@ class DynamicInclude extends ExtensionBase
         }
 
         if ($this->hasRelation()) {
-            if ($this->hasValue()) {
+            if ($this->isCountRelation($model, $fieldName)) {
+                return new Primitive($model->$fieldName->first()->count);
+            } elseif ($this->hasNoValue()) {
                 return $this->getNullResource();
             }
 
@@ -284,7 +293,7 @@ class DynamicInclude extends ExtensionBase
         return $this->getModel()->hasRelation($this->getFieldName());
     }
 
-    private function hasValue(): bool
+    private function hasNoValue(): bool
     {
         return !$this->getValue();
     }

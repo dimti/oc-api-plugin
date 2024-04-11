@@ -57,6 +57,16 @@ trait EloquentModelRelationFinder
     /**
      * @throws ReflectionException
      */
+    public function isCountRelation(Model|string $parentModel, string $mayBeRelation): bool
+    {
+        $relationDefinition = $this->getRelationDefinition($parentModel, $mayBeRelation);
+
+        return is_array($relationDefinition) && array_key_exists('count', $relationDefinition) && $relationDefinition['count'];
+    }
+
+    /**
+     * @throws ReflectionException
+     */
     public function hasRelation(Model|string $parentModel, string $mayBeRelation): bool
     {
         return $this->getRelationType($parentModel, $mayBeRelation) !== null;

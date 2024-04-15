@@ -105,7 +105,7 @@ trait EloquentModelRelationFinder
 
         throw new OctobroApiException(sprintf(
             'Unable to get relation model class name for: %s.%s',
-            get_class($parentModel),
+            is_string($parentModel) ? $parentModel : get_class($parentModel),
             $mayBeRelation,
         ));
     }

@@ -1,13 +1,14 @@
 <?php namespace Octobro\API\Classes;
 
 use Closure;
-use League\Fractal\Resource\NullResource;
+use Config;
 use League\Fractal\Scope;
 use League\Fractal\TransformerAbstract;
 use October\Rain\Database\Model;
+use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Transformer\DynamicInclude;
+use Str;
 use System\Models\File;
-use Config;
 
 /**
  * @method getDynamicInclude(string $fieldName, Model $model)
@@ -164,4 +165,39 @@ abstract class Transformer extends TransformerAbstract
         return $result;
     }
 
+    /**
+     * @throws OctobroApiException
+     */
+    public function processIncludedResources(Scope $scope, $data)
+    {
+        if (Config::get('octobro.api::useStrictIncludes', false)) {
+            $requestedIncludes = collect($scope->getManager()->getRequestedIncludes());
+
+            $currentScopePath = (
+            $scope->getParentScopes() ?
+                collect($scope->getParentScopes())->slice(1)->add($scope->getScopeIdentifier()) :
+                collect([])
+            )->join('.');
+
+            $requestedCurrentScopeIncludes = $requestedIncludes
+                ->when($currentScopePath, fn($items) => $items->filter(
+                    fn($segment) => Str::startsWith($segment, $currentScopePath . '.') && $segment != $currentScopePath)
+                )
+                ->when($currentScopePath, fn($items) => $items->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment)))
+                ->map(fn($segment) => explode('.', $segment)[0])
+                ->unique();
+
+            $availableIncludesInTransformer = collect($this->getAvailableIncludes());
+
+            if (($diff = $requestedCurrentScopeIncludes->diff($availableIncludesInTransformer))->count() > 0) {
+                throw new OctobroApiException(sprintf(
+                    'The requested includes %s are not available in %s.',
+                    $diff->join(', '),
+                    class_basename($this)
+                ));
+            }
+        }
+
+        return parent::processIncludedResources($scope, $data);
+    }
 }

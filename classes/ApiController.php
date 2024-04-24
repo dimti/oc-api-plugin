@@ -63,7 +63,7 @@ class ApiController extends Controller
             $errorHandler = function (\Exception $e) {
                 $error = [
                     'errors' => [
-                        'code' => 'INTERNAL_ERROR',
+                        'code' => 'INTERNAL_ERROR: ' . class_basename($e),
                         'http_code' => 500,
                         'message' => $e->getMessage(),
                         'file' => $e->getFile(),

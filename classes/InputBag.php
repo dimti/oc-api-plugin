@@ -2,6 +2,7 @@
 
 use October\Rain\Exception\ValidationException;
 use Validator;
+use Input;
 
 class InputBag
 {
@@ -19,7 +20,7 @@ class InputBag
 
     public function fillFromRequest(): void
     {
-        $this->input = (request()->isJson() ? request()->json() : request())->all();
+        $this->input = Input::get();
     }
 
     public function has(string $key): bool

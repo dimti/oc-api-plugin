@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Model;
 use Octobro\API\Classes\enums\Relation;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
+use RainLab\User\Models\User;
 use ReflectionClass;
 use ReflectionException;
 
@@ -22,9 +23,29 @@ trait EloquentModelRelationFinder
     /**
      * @throws ReflectionException
      */
-    private function getMayBeRelationDefinitionByReflect(ReflectionClass $reflect, Relation $relationType, string $mayBeRelation): array|string
+    private function getMayBeRelationDefinitionByReflect(ReflectionClass $reflectionClass, Relation $relationType, string $mayBeRelation): array|string
     {
-        return $reflect->getProperty($relationType->value)?->getDefaultValue()[$mayBeRelation];
+        if ($this->isInteractWithUserRelation($reflectionClass, $mayBeRelation)) {
+            return [User::class, 'key' => \Str::snake($mayBeRelation, '_') . '_id'];
+        }
+
+        return $this->getRelationDefinitionsProperty($reflectionClass, $relationType)[$mayBeRelation];
+    }
+
+    private function getRelationDefinitionsProperty(ReflectionClass $reflect, Relation $relationType)
+    {
+        return ($reflect->getProperty($relationType->value)?->getDefaultValue() ?? []);
+    }
+
+    private function isInteractWithUserRelation(ReflectionClass $reflectionClass, string $mayBeRelation)
+    {
+        return in_array('Wpstudio\Helpers\Classes\Traits\InteractWithUser', class_uses_recursive($modelClassName = $reflectionClass->getName())) &&
+            ($interactWithUserAttributes = array_map(fn(string $attributeId) => $modelClassName::getRelationNameFromAttributeId($attributeId), array_filter([
+                $modelClassName::getCreatedUserIdAttributeName($modelClassName),
+                $modelClassName::getUpdatedUserIdAttributeName($modelClassName),
+                $modelClassName::getDeletedUserIdAttributeName($modelClassName),
+            ]))) &&
+            in_array($mayBeRelation, $interactWithUserAttributes);
     }
 
     /**
@@ -32,12 +53,16 @@ trait EloquentModelRelationFinder
      */
     public function getRelationType(Model|string $parentModel, string $mayBeRelation): ?Relation
     {
-        $reflect = $this->getReflectionClassOfModel($parentModel);
+        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
+
+        if ($this->isInteractWithUserRelation($reflectionClass, $mayBeRelation)) {
+            return Relation::RELATION_BELONGS_TO;
+        }
 
         return collect(Relation::cases())->filter(
-            fn ($relationTypeName) => array_key_exists(
+            fn ($relationType) => array_key_exists(
                 $mayBeRelation,
-                ($reflect->getProperty($relationTypeName->value)?->getDefaultValue() ?? [])
+                $this->getRelationDefinitionsProperty($reflectionClass, $relationType)
             )
         )->first();
     }

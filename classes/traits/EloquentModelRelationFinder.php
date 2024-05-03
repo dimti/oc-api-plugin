@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Octobro\API\Classes\enums\Relation;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
 use RainLab\User\Models\User;
@@ -195,5 +196,25 @@ trait EloquentModelRelationFinder
             get_class($parentModel),
             $mayBeRelation
         ));
+    }
+
+    /**
+     * @param Model|string $parentModel
+     * @return Collection<string, array|string>
+     * @throws ReflectionException
+     */
+    public function getRelations(Model|string $parentModel): Collection
+    {
+        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
+
+        $relations = collect();
+
+        collect(Relation::cases())->each(
+            fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
+                fn ($relationDefinition, $relationName) => $relations->offsetSet($relationName, $relationDefinition)
+            )
+        )->filter();
+
+        return $relations->filter();
     }
 }

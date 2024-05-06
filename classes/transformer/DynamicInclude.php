@@ -10,6 +10,7 @@ use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
+use Winter\Storm\Database\Pivot;
 
 class DynamicInclude extends ExtensionBase
 {
@@ -51,6 +52,28 @@ class DynamicInclude extends ExtensionBase
      */
     public function getDynamicInclude(string $fieldName, Model $model)
     {
+        if ($fieldName == 'pivot') {
+            return new Item($model->$fieldName, function (Pivot $pivot) use ($fieldName) {
+                $parentModel = $pivot->pivotParent;
+
+                $relationModel = $this->model;
+
+                $relationName = $this->transformer->getCurrentScope()->getScopeIdentifier();
+
+                $relationDefinition = $this->getRelationDefinition($parentModel, $relationName);
+
+                if (!array_key_exists('pivot', $relationDefinition)) {
+                    throw new OctobroApiException(sprintf(
+                        'Unable to find pivot definition for %s in model %s',
+                        $relationName,
+                        class_basename($parentModel))
+                    );
+                }
+
+                return $pivot->only($relationDefinition['pivot']);
+            });
+        }
+
         $this->setFieldName($fieldName);
 
         $this->setModel($model);

@@ -185,11 +185,12 @@ abstract class Transformer extends TransformerAbstract
                 )
                 ->when($currentScopePath, fn($items) => $items->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment)))
                 ->map(fn($segment) => explode('.', $segment)[0])
+                ->filter()
                 ->unique();
 
             $availableIncludesInTransformer = collect($this->getAvailableIncludes());
 
-            if (($diff = $requestedCurrentScopeIncludes->diff($availableIncludesInTransformer))->count() > 0) {
+            if ($requestedCurrentScopeIncludes->count() && ($diff = $requestedCurrentScopeIncludes->diff($availableIncludesInTransformer))->count() > 0) {
                 throw new OctobroApiException(sprintf(
                     'The requested includes %s are not available in %s.',
                     $diff->join(', '),

@@ -53,7 +53,11 @@ class DynamicInclude extends ExtensionBase
     public function getDynamicInclude(string $fieldName, Model $model)
     {
         if ($fieldName == 'pivot') {
-            return new Item($model->$fieldName, function (Pivot $pivot) use ($fieldName) {
+            return new Item($model->$fieldName, function (?Pivot $pivot) use ($fieldName) {
+                if (!$pivot) {
+                    return [];
+                }
+
                 $parentModel = $pivot->pivotParent;
 
                 $relationModel = $this->model;

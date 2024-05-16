@@ -7,7 +7,7 @@ use Closure;
 use Cache;
 use October\Rain\Database\Model;
 use October\Rain\Extension\ExtendableTrait;
-use Octobro\API\Classes\traits\EloquentModelRelationFinder;
+use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;

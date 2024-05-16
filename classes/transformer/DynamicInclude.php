@@ -7,7 +7,7 @@ use League\Fractal\Resource\Primitive;
 use October\Rain\Database\Model;
 use October\Rain\Extension\ExtensionBase;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
-use Octobro\API\Classes\traits\EloquentModelRelationFinder;
+use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
 use Winter\Storm\Database\Pivot;

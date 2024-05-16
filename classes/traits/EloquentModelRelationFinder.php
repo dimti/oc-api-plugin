@@ -1,4 +1,4 @@
-<?php namespace Octobro\API\Classes\traits;
+<?php namespace Octobro\API\Classes\Traits;
 
 use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Model;

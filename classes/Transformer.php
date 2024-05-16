@@ -2,6 +2,7 @@
 
 use Closure;
 use Config;
+use Illuminate\Support\Collection;
 use League\Fractal\Scope;
 use League\Fractal\TransformerAbstract;
 use October\Rain\Database\Model;
@@ -27,7 +28,6 @@ abstract class Transformer extends TransformerAbstract
     public $availableIncludes = [];
 
     protected $additionalFields = [];
-
     /**
      * Instantiate a new BackendController instance.
      */
@@ -165,28 +165,33 @@ abstract class Transformer extends TransformerAbstract
         return $result;
     }
 
+    protected function getCurrentScopeIncludes(): Collection
+    {
+        $requestedIncludes = collect($this->getCurrentScope()->getManager()->getRequestedIncludes());
+
+        $currentScopePath = (
+            $this->getCurrentScope()->getParentScopes() ?
+                collect($this->getCurrentScope()->getParentScopes())->slice(1)->add($this->getCurrentScope()->getScopeIdentifier()) :
+                collect([])
+        )->join('.');
+
+        return $requestedIncludes
+            ->when($currentScopePath, fn($items) => $items->filter(
+                fn($segment) => Str::startsWith($segment, $currentScopePath . '.') && $segment != $currentScopePath)
+            )
+            ->when($currentScopePath, fn($items) => $items->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment)))
+            ->map(fn($segment) => explode('.', $segment)[0])
+            ->filter()
+            ->unique();
+    }
+
     /**
      * @throws OctobroApiException
      */
     public function processIncludedResources(Scope $scope, $data)
     {
         if (Config::get('octobro.api::useStrictIncludes', false)) {
-            $requestedIncludes = collect($scope->getManager()->getRequestedIncludes());
-
-            $currentScopePath = (
-            $scope->getParentScopes() ?
-                collect($scope->getParentScopes())->slice(1)->add($scope->getScopeIdentifier()) :
-                collect([])
-            )->join('.');
-
-            $requestedCurrentScopeIncludes = $requestedIncludes
-                ->when($currentScopePath, fn($items) => $items->filter(
-                    fn($segment) => Str::startsWith($segment, $currentScopePath . '.') && $segment != $currentScopePath)
-                )
-                ->when($currentScopePath, fn($items) => $items->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment)))
-                ->map(fn($segment) => explode('.', $segment)[0])
-                ->filter()
-                ->unique();
+            $requestedCurrentScopeIncludes = $this->getCurrentScopeIncludes();
 
             $availableIncludesInTransformer = collect($this->getAvailableIncludes());
 

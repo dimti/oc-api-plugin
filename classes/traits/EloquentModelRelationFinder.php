@@ -8,6 +8,7 @@ use Octobro\API\Classes\Exceptions\OctobroApiException;
 use RainLab\User\Models\User;
 use ReflectionClass;
 use ReflectionException;
+use Winter\Storm\Database\Traits\NestedTree;
 
 trait EloquentModelRelationFinder
 {
@@ -30,6 +31,10 @@ trait EloquentModelRelationFinder
             return [User::class, 'key' => \Str::snake($mayBeRelation, '_') . '_id'];
         }
 
+        if ($this->isNestedTreeRelation($reflectionClass, $mayBeRelation)) {
+            return [$reflectionClass->getName(), 'key' => 'parent_id'];
+        }
+
         return $this->getRelationDefinitionsProperty($reflectionClass, $relationType)[$mayBeRelation];
     }
 
@@ -49,6 +54,16 @@ trait EloquentModelRelationFinder
             in_array($mayBeRelation, $interactWithUserAttributes);
     }
 
+    public function isNestedTreeRelation(ReflectionClass|Model|string $reflectionClass, string $mayBeRelation)
+    {
+        if (!($reflectionClass instanceof ReflectionClass)) {
+            $reflectionClass = $this->getReflectionClassOfModel($reflectionClass);
+        }
+
+        return in_array(NestedTree::class, class_uses_recursive($modelClassName = $reflectionClass->getName())) &&
+            in_array($mayBeRelation, ['children', 'parent']);
+    }
+
     /**
      * @throws ReflectionException
      */
@@ -58,6 +73,15 @@ trait EloquentModelRelationFinder
 
         if ($this->isInteractWithUserRelation($reflectionClass, $mayBeRelation)) {
             return Relation::RELATION_BELONGS_TO;
+        }
+
+        if ($this->isNestedTreeRelation($reflectionClass, $mayBeRelation)) {
+            switch ($mayBeRelation) {
+                case 'children':
+                    return Relation::RELATION_HAS_MANY;
+                case 'parent':
+                    return Relation::RELATION_BELONGS_TO;
+            }
         }
 
         return collect(Relation::cases())->filter(

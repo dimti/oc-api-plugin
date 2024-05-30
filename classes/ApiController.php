@@ -1,6 +1,8 @@
 <?php namespace Octobro\API\Classes;
 
 use App;
+use Error;
+use Exception;
 use Input;
 use Config;
 use Closure;
@@ -11,6 +13,7 @@ use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;
+use Symfony\Component\ErrorHandler\Error\FatalError;
 use Symfony\Component\Yaml\Dumper as YamlDumper;
 use League\Fractal\Manager;
 use League\Fractal\Resource\Item;
@@ -60,7 +63,7 @@ class ApiController extends Controller
         if (app()->get('router')->getCurrentRoute()?->controller === null) {
             $this->inputBag->fillFromRequest();
 
-            $errorHandler = function (\Exception $e) {
+            $errorHandler = function (Exception|Error $e) {
                 $error = [
                     'errors' => [
                         'code' => 'INTERNAL_ERROR: ' . class_basename($e),

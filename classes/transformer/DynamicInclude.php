@@ -30,10 +30,7 @@ class DynamicInclude extends ExtensionBase
 
     private bool $isSingularRelation;
 
-    /**
-     * @var array|string|null
-     */
-    private $relationDefinition;
+    private array|string $relationDefinition;
 
     private string $relatedModelClass;
 
@@ -115,6 +112,8 @@ class DynamicInclude extends ExtensionBase
 
     private function prepareRelationDefinition(): void
     {
+        $this->unsetRelatedModelClass();
+
         if (array_key_exists($this->getFieldName(), $this->getModel()->belongsTo)) {
             $this->isSingularRelation = true;
 
@@ -139,6 +138,18 @@ class DynamicInclude extends ExtensionBase
             $this->isSingularRelation = false;
 
             $this->relationDefinition = $this->getModel()->attachMany[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphOne)) {
+            $this->isSingularRelation = true;
+
+            $this->relationDefinition = $this->getModel()->morphOne[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphMany)) {
+            $this->isSingularRelation = false;
+
+            $this->relationDefinition = $this->getModel()->morphMany[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphTo)) {
+            $this->isSingularRelation = true;
+
+            $this->relationDefinition = $this->model->getAttribute($this->getFieldName() . '_type');
         }
 
         $this->setRelatedModelClass(is_array($this->relationDefinition) ? $this->relationDefinition[0] : $this->relationDefinition);
@@ -146,6 +157,8 @@ class DynamicInclude extends ExtensionBase
 
     private function prepareTransformerClass(): void
     {
+        $this->unsetTransformerClass();
+
         if (strpos($this->getRelatedModelClass(), 'File') !== false) {
             $this->setTransformerClass(static::getDefaultFileModelTransformer());
         } elseif (strpos($this->getRelatedModelClass(), 'User') !== false) {
@@ -362,6 +375,13 @@ class DynamicInclude extends ExtensionBase
         $this->transformerClass = $transformerClass;
     }
 
+    public function unsetTransformerClass(): void
+    {
+        unset($this->transformerClass);
+
+        $this->isFoundTransformer = false;
+    }
+
     /**
      * @return string
      */
@@ -376,6 +396,11 @@ class DynamicInclude extends ExtensionBase
     public function setRelatedModelClass(string $relatedModelClass): void
     {
         $this->relatedModelClass = $relatedModelClass;
+    }
+
+    public function unsetRelatedModelClass(): void
+    {
+        unset($this->isSingularRelation, $this->relationDefinition, $this->relatedModelClass);
     }
 
     /**

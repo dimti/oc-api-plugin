@@ -140,6 +140,17 @@ trait EloquentModelRelationFinder
     /**
      * @throws ReflectionException
      */
+    public function isMorphToRelation(Model|string $parentModel, string $mayBeRelation): bool
+    {
+        $relation = $this->getRelationType($parentModel, $mayBeRelation);
+
+        return in_array($relation, [
+            Relation::RELATION_MORPH_TO,
+        ]);
+    }
+    /**
+     * @throws ReflectionException
+     */
     public function isMorphContainRelation(Model|string $parentModel, string $mayBeRelation): bool
     {
         $relation = $this->getRelationType($parentModel, $mayBeRelation);
@@ -250,7 +261,7 @@ trait EloquentModelRelationFinder
             fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
                 fn ($relationDefinition, $relationName) => $relations->offsetSet($relationName, $relationDefinition)
             )
-        )->filter();
+        );
 
         return $relations->filter();
     }

@@ -195,7 +195,11 @@ abstract class Transformer extends TransformerAbstract
 
             $availableIncludesInTransformer = collect($this->getAvailableIncludes());
 
-            if ($requestedCurrentScopeIncludes->count() && ($diff = $requestedCurrentScopeIncludes->diff($availableIncludesInTransformer))->count() > 0) {
+            if (
+                $requestedCurrentScopeIncludes->count() &&
+                ($diff = $requestedCurrentScopeIncludes->filter(fn($column) => $column != 'id')->diff($availableIncludesInTransformer)) &&
+                $diff->count() > 0
+            ) {
                 throw new OctobroApiException(sprintf(
                     'The requested includes %s are not available in %s.',
                     $diff->join(', '),

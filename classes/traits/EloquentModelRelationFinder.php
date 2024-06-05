@@ -138,6 +138,19 @@ trait EloquentModelRelationFinder
     }
 
     /**
+     * @throws ReflectionException
+     */
+    public function isMorphContainRelation(Model|string $parentModel, string $mayBeRelation): bool
+    {
+        $relation = $this->getRelationType($parentModel, $mayBeRelation);
+
+        return in_array($relation, [
+            Relation::RELATION_MORPH_ONE,
+            Relation::RELATION_MORPH_MANY,
+        ]);
+    }
+
+    /**
      * @throws OctobroApiException
      * @throws ReflectionException
      */

@@ -167,21 +167,21 @@ abstract class Transformer extends TransformerAbstract
         return $result;
     }
 
-    protected function getCurrentScopeIncludes(): Collection
+    public function getCurrentScopeIncludes(?string $currentScopePath = null): Collection
     {
         $requestedIncludes = collect($this->getCurrentScope()->getManager()->getRequestedIncludes());
 
-        $currentScopePath = (
+        $currentScopePath = $currentScopePath ?? (
             $this->getCurrentScope()->getParentScopes() ?
                 collect($this->getCurrentScope()->getParentScopes())->slice(1)->add($this->getCurrentScope()->getScopeIdentifier()) :
                 collect([])
         )->join('.');
 
         return $requestedIncludes
-            ->when($currentScopePath, fn($items) => $items->filter(
-                fn($segment) => Str::startsWith($segment, $currentScopePath . '.') && $segment != $currentScopePath)
+            ->when($currentScopePath && !Str::startsWith($currentScopePath, 'children'), fn($items) => $items
+                ->filter(fn($segment) => Str::startsWith($segment, $currentScopePath . '.') && $segment != $currentScopePath)
+                ->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment))
             )
-            ->when($currentScopePath, fn($items) => $items->map(fn($segment) => Str::replaceFirst($currentScopePath . '.', '', $segment)))
             ->map(fn($segment) => explode('.', $segment)[0])
             ->filter()
             ->unique();

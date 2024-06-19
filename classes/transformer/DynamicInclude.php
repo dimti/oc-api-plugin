@@ -95,10 +95,16 @@ class DynamicInclude extends ExtensionBase
             $this->prepareTransformerClass();
 
             if ($this->isFoundTransformer()) {
+                $transformer = app($this->getTransformerClass());
+
+                if (collect($this->transformer->getCurrentScope()->getManager()->getRequestedIncludes())->contains('children')) {
+                    $transformer->defaultIncludes = $this->transformer->getCurrentScopeIncludes($fieldName);
+                }
+
                 if ($this->isSingularRelation()) {
-                    return new Item($model->$fieldName, app($this->getTransformerClass()));
+                    return new Item($model->$fieldName, $transformer);
                 } else {
-                    return new Collection($model->$fieldName, app($this->getTransformerClass()));
+                    return new Collection($model->$fieldName, $transformer);
                 }
             }
         }

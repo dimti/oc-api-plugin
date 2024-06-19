@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Octobro\API\Classes\enums\Relation;
+use Octobro\API\Classes\Exceptions\EloquentRelationFinderException;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
 use RainLab\User\Models\User;
 use ReflectionClass;
@@ -137,6 +138,17 @@ trait EloquentModelRelationFinder
         }
     }
 
+    public function isMorphRelation(Model|string $parentModel, string $mayBeRelation): bool
+    {
+        $relation = $this->getRelationType($parentModel, $mayBeRelation);
+
+        return in_array($relation, [
+            Relation::RELATION_MORPH_TO,
+            Relation::RELATION_MORPH_ONE,
+            Relation::RELATION_MORPH_MANY,
+        ]);
+    }
+
     /**
      * @throws ReflectionException
      */
@@ -148,6 +160,7 @@ trait EloquentModelRelationFinder
             Relation::RELATION_MORPH_TO,
         ]);
     }
+
     /**
      * @throws ReflectionException
      */
@@ -161,8 +174,15 @@ trait EloquentModelRelationFinder
         ]);
     }
 
+    public function isContainMorphRelationByIdentifierRelation(Model|string $parentModel, string $morphRelationIdentifier): bool
+    {
+        $morphContainRelations = $this->getMorphContainRelations($parentModel);
+
+        return !!$morphContainRelations->filter(fn($relationDefinition, $relationName) => array_key_exists('name', $relationDefinition) && $relationDefinition['name'] === $morphRelationIdentifier)->count();
+    }
+
     /**
-     * @throws OctobroApiException
+     * @throws EloquentRelationFinderException
      * @throws ReflectionException
      */
     public function getRelationModelClassName(Model|string $parentModel, string $mayBeRelation): string
@@ -177,10 +197,11 @@ trait EloquentModelRelationFinder
             return $relationClassName;
         }
 
-        throw new OctobroApiException(sprintf(
-            'Unable to get relation model class name for: %s.%s',
+        throw new EloquentRelationFinderException(sprintf(
+            'Unable to get relation model class name for: %s.%s%s',
             is_string($parentModel) ? $parentModel : get_class($parentModel),
             $mayBeRelation,
+            is_object($parentModel) ? sprintf('(%d)', $parentModel->getKey()) : null
         ));
     }
 
@@ -264,5 +285,20 @@ trait EloquentModelRelationFinder
         );
 
         return $relations->filter();
+    }
+
+    public function getMorphContainRelations(Model|string $parentModel): Collection
+    {
+        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
+
+        $morphContainRelations = collect();
+
+        collect(Relation::cases())
+            ->filter(fn(Relation $relationType) => in_array($relationType, [Relation::RELATION_MORPH_ONE, Relation::RELATION_MORPH_MANY]))
+            ->each(fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
+                fn ($relationDefinition, $relationName) => $morphContainRelations->offsetSet($relationName, $relationDefinition)
+            ));
+
+        return $morphContainRelations->filter();
     }
 }

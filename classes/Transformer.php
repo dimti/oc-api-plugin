@@ -6,7 +6,9 @@ use Illuminate\Support\Collection;
 use League\Fractal\Scope;
 use League\Fractal\TransformerAbstract;
 use October\Rain\Database\Model;
+use October\Rain\Extension\ExtendableTrait;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
+use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer\DynamicInclude;
 use Str;
 use System\Models\File;
@@ -17,7 +19,7 @@ use System\Models\File;
  */
 abstract class Transformer extends TransformerAbstract
 {
-    use \October\Rain\Extension\ExtendableTrait;
+    use ExtendableTrait, EloquentModelRelationFinder;
 
     public $implement = [
         DynamicInclude::class,
@@ -190,7 +192,7 @@ abstract class Transformer extends TransformerAbstract
      */
     public function processIncludedResources(Scope $scope, $data)
     {
-        if (Config::get('octobro.api::useStrictIncludes', false)) {
+        if (Config::get('octobro.api::useStrictIncludes', false) && (!$scope->getScopeIdentifier() || !$this->isContainMorphRelationByIdentifierRelation($data, $scope->getScopeIdentifier()))) {
             $requestedCurrentScopeIncludes = $this->getCurrentScopeIncludes();
 
             $availableIncludesInTransformer = collect($this->getAvailableIncludes());

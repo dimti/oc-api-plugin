@@ -13,7 +13,6 @@ use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;
-use Symfony\Component\ErrorHandler\Error\FatalError;
 use Symfony\Component\Yaml\Dumper as YamlDumper;
 use League\Fractal\Manager;
 use League\Fractal\Resource\Item;
@@ -157,7 +156,7 @@ class ApiController extends Controller
             $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
 
             if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
-                if ($this->hasRelation($model, $maybeRelation)) {
+                if ($this->hasRelation($model, $maybeRelation) && !$this->isMorphToRelation($model, $maybeRelation)) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
                         $possibleWiths[] = $fullMaybeRelationWithPath;
                     }

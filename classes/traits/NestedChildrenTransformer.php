@@ -6,11 +6,17 @@ use Winter\Storm\Database\Model;
 
 trait NestedChildrenTransformer
 {
+    private static array $baseLevelDefaultIncludes;
+
     public function includeChildren(Model $model)
     {
         $transformer = new self;
 
-        $transformer->defaultIncludes = $this->getCurrentScopeIncludes()->toArray();
+        if (!isset(static::$baseLevelDefaultIncludes)) {
+            static::$baseLevelDefaultIncludes = $this->getCurrentScopeIncludes()->toArray();
+        }
+
+        $transformer->defaultIncludes = static::$baseLevelDefaultIncludes;
 
         return $this->collection($model->children, $transformer);
     }

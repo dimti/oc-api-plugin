@@ -287,6 +287,21 @@ trait EloquentModelRelationFinder
         return $relations->filter();
     }
 
+    public function getMorphToRelations(Model|string $parentModel): Collection
+    {
+        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
+
+        $morphContainRelations = collect();
+
+        collect(Relation::cases())
+            ->filter(fn(Relation $relationType) => in_array($relationType, [Relation::RELATION_MORPH_TO]))
+            ->each(fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
+                fn ($relationDefinition, $relationName) => $morphContainRelations->offsetSet($relationName, $relationDefinition)
+            ));
+
+        return $morphContainRelations;
+    }
+
     public function getMorphContainRelations(Model|string $parentModel): Collection
     {
         $reflectionClass = $this->getReflectionClassOfModel($parentModel);

@@ -212,4 +212,9 @@ abstract class Transformer extends TransformerAbstract
 
         return parent::processIncludedResources($scope, $data);
     }
+
+    public function hasDynamicInclude(string $fieldName): bool
+    {
+        return array_key_exists(camel_case('include ' . $fieldName), $this->extensionData['dynamicMethods']);
+    }
 }

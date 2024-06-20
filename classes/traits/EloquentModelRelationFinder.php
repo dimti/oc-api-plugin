@@ -86,7 +86,7 @@ trait EloquentModelRelationFinder
         }
 
         return collect(Relation::cases())->filter(
-            fn ($relationType) => array_key_exists(
+            fn($relationType) => array_key_exists(
                 $mayBeRelation,
                 $this->getRelationDefinitionsProperty($reflectionClass, $relationType)
             )
@@ -272,48 +272,42 @@ trait EloquentModelRelationFinder
      * @return Collection<string, array|string>
      * @throws ReflectionException
      */
-    public function getRelations(Model|string $parentModel): Collection
+    public function getRelations(Model|string $parentModel, array $relationTypeFilter = null): Collection
     {
         $reflectionClass = $this->getReflectionClassOfModel($parentModel);
 
         $relations = collect();
 
-        collect(Relation::cases())->each(
-            fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
-                fn ($relationDefinition, $relationName) => $relations->offsetSet($relationName, $relationDefinition)
-            )
-        );
+        collect(Relation::cases())
+            ->when($relationTypeFilter, fn($query) => $query->filter(fn($relationType) => in_array($relationType, $relationTypeFilter)))
+            ->each(fn($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
+                fn($relationDefinition, $relationName) => $relations->offsetSet($relationName, $relationDefinition)
+            ));
 
-        return $relations->filter();
+        return $relations;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function getContainRelations(Model|string $parentModel): Collection
+    {
+        return $this->getRelations($parentModel, [
+            Relation::RELATION_HAS_ONE,
+            Relation::RELATION_HAS_MANY,
+            Relation::RELATION_BELONGS_TO_MANY,
+            Relation::RELATION_MORPH_ONE,
+            Relation::RELATION_MORPH_MANY,
+        ]);
     }
 
     public function getMorphToRelations(Model|string $parentModel): Collection
     {
-        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
-
-        $morphContainRelations = collect();
-
-        collect(Relation::cases())
-            ->filter(fn(Relation $relationType) => in_array($relationType, [Relation::RELATION_MORPH_TO]))
-            ->each(fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
-                fn ($relationDefinition, $relationName) => $morphContainRelations->offsetSet($relationName, $relationDefinition)
-            ));
-
-        return $morphContainRelations;
+        return $this->getRelations($parentModel, [Relation::RELATION_MORPH_TO]);
     }
 
     public function getMorphContainRelations(Model|string $parentModel): Collection
     {
-        $reflectionClass = $this->getReflectionClassOfModel($parentModel);
-
-        $morphContainRelations = collect();
-
-        collect(Relation::cases())
-            ->filter(fn(Relation $relationType) => in_array($relationType, [Relation::RELATION_MORPH_ONE, Relation::RELATION_MORPH_MANY]))
-            ->each(fn ($relationType) => collect($this->getRelationDefinitionsProperty($reflectionClass, $relationType))->each(
-                fn ($relationDefinition, $relationName) => $morphContainRelations->offsetSet($relationName, $relationDefinition)
-            ));
-
-        return $morphContainRelations->filter();
+        return $this->getRelations($parentModel, [[Relation::RELATION_MORPH_ONE, Relation::RELATION_MORPH_MANY]])->filter();
     }
 }

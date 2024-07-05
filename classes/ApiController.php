@@ -3,12 +3,11 @@
 use App;
 use Error;
 use Exception;
+use Illuminate\Database\Eloquent\Model;
 use Input;
 use Config;
 use Closure;
 use Cache;
-use October\Rain\Database\Model;
-use October\Rain\Extension\ExtendableTrait;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
@@ -18,6 +17,7 @@ use League\Fractal\Manager;
 use League\Fractal\Resource\Item;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
+use Winter\Storm\Extension\ExtendableTrait;
 
 class ApiController extends Controller
 {

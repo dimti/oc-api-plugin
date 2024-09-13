@@ -85,7 +85,7 @@ class DynamicInclude extends ExtensionBase
 
         if ($this->hasRelation()) {
             if ($this->isCountRelation($model, $fieldName)) {
-                return new Primitive($model->$fieldName->first()->count);
+                return new Primitive($model->$fieldName->first()?->count ?? 0);
             } elseif ($this->hasNoValue()) {
                 return $this->getNullResource();
             }

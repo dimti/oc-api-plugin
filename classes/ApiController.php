@@ -68,12 +68,12 @@ class ApiController extends Controller
                         'code' => 'INTERNAL_ERROR: ' . class_basename($e),
                         'http_code' => 500,
                         'message' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
                     ],
                 ];
 
                 if (Config::get('app.debug')) {
+                    $error['errors']['file'] = $e->getFile();
+                    $error['errors']['line'] = $e->getLine();
                     $error['errors']['trace'] = explode("\n", $e->getTraceAsString());
                 }
 

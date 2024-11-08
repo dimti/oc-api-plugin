@@ -10,6 +10,7 @@ use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
+use Winter\Storm\Argon\Argon;
 use Winter\Storm\Database\Pivot;
 
 class DynamicInclude extends ExtensionBase
@@ -331,7 +332,13 @@ class DynamicInclude extends ExtensionBase
 
     private function getPrimitive(): Primitive
     {
-        return new Primitive($this->getValueFromSnakeCaseField());
+        $fieldValue = $this->getValueFromSnakeCaseField();
+
+        if ($fieldValue instanceof Argon) {
+            $fieldValue = $fieldValue->toISOString(true);
+        }
+
+        return new Primitive($fieldValue);
     }
 
     private function hasRelation(): bool

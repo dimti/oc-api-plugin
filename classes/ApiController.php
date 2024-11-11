@@ -59,34 +59,19 @@ class ApiController extends Controller
 
         $this->inputBag = $inputBag;
 
+        /**
+         * @desc Handle error (do not handle errors if running from cms controller)
+         * CmsController has been defined on this point if ApiController call from OctoberCMS components
+         * But if that api query with api routes - controller not defined on this point
+         */
         if (app()->get('router')->getCurrentRoute()?->controller === null) {
             $this->inputBag->fillFromRequest();
 
-            $errorHandler = function (Exception|Error $e) {
-                $error = [
-                    'errors' => [
-                        'code' => 'INTERNAL_ERROR: ' . class_basename($e),
-                        'http_code' => 500,
-                        'message' => $e->getMessage(),
-                    ],
-                ];
+            /** @var ApiErrorHandler $errorRenderer */
+            $errorRenderer = app(ApiErrorHandler::class);
 
-                if (Config::get('app.debug')) {
-                    $error['errors']['file'] = $e->getFile();
-                    $error['errors']['line'] = $e->getLine();
-                    $error['errors']['trace'] = explode("\n", $e->getTraceAsString());
-                }
-
-                return $error;
-            };
-
-            /**
-             * @desc Handle error (do not handle errors if running from cms controller)
-             * CmsController has been defined on this point if ApiController call from OctoberCMS components
-             * But if that api query with api routes - controller not defined on this point
-             */
-            App::error($errorHandler);
-            App::fatal($errorHandler);
+            App::error($errorRenderer->render(...));
+            App::fatal($errorRenderer->render(...));
         }
 
         $this->initRepository();

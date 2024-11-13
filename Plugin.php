@@ -1,7 +1,10 @@
 <?php namespace Octobro\API;
 
 use App;
+use Carbon\CarbonInterface;
 use Config;
+use DateTime;
+use DateTimeZone;
 use Fruitcake\Cors\HandleCors;
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Support\Facades\Date;
@@ -28,14 +31,26 @@ class Plugin extends PluginBase
 
         Model::extend(function (Model $model) {
             $model->bindEvent('model.beforeSetAttribute', function ($attribute, $value) use ($model) {
-                if ($this->isDateDateAttribute($model, $attribute) && str_contains($value, 'T')) {
+                /**
+                 * @desc For a catch strange values use: !$value instanceof Carbon\CarbonInterface && !is_scalar($value) && !is_null($value) && !is_array($value)
+                 */
+                if ($this->isDateDateAttribute($model, $attribute) &&
+                    (
+                        ($value instanceof CarbonInterface && $value->tzName !== $this->localTimezone) ||
+                        ($value instanceof DateTime && $value->getTimezone()->getName() != $this->localTimezone) ||
+                        (is_string($value) && str_contains($value, 'T'))
+                    )
+                ) {
                     /**
                      * @example "2024-10-17T15:11:00.000000+08:00" ➝ "2024-10-17T10:11:00.000000+03:00"
                      * @see Model::asDateTime
                      * @see JsonResponse
                      * @see HasAttributes::fromDateTime
                      */
-                    return Date::createFromFormat('Y-m-d\TH:i:s.up', $value)->setTimezone($this->localTimezone);
+                    return (is_string($value) ?
+                        Date::createFromFormat('Y-m-d\TH:i:s.up', $value) :
+                        $value)
+                        ->setTimezone(new DateTimeZone($this->localTimezone));
                 }
 
                 return $value;

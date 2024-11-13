@@ -1,5 +1,6 @@
 <?php namespace Octobro\API\Classes\Transformer;
 
+use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\Resource\NullResource;
@@ -10,12 +11,13 @@ use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
+use Str;
 use Winter\Storm\Argon\Argon;
 use Winter\Storm\Database\Pivot;
 
 class DynamicInclude extends ExtensionBase
 {
-    use EloquentModelRelationFinder;
+    use EloquentModelRelationFinder, HasAttributes;
 
     private Transformer $transformer;
 
@@ -330,12 +332,38 @@ class DynamicInclude extends ExtensionBase
         return $this->getModel()->{$this->getFieldNameSnakeCase()};
     }
 
+    /**
+     * @throws OctobroApiException
+     */
     private function getPrimitive(): Primitive
     {
         $fieldValue = $this->getValueFromSnakeCaseField();
 
         if ($fieldValue instanceof Argon) {
             $fieldValue = $fieldValue->toISOString(true);
+        } else {
+            $castType = null;
+
+            if (array_key_exists($this->fieldName, $this->transformer->dynamicCasts)) {
+                $castType = $this->transformer->dynamicCasts[$this->fieldName];
+            } elseif (array_key_exists(Str::snake($this->fieldName), $this->transformer->dynamicCasts)) {
+                $castType = $this->transformer->dynamicCasts[Str::snake($this->fieldName)];
+            }
+
+            if (!is_null($castType)) {
+                /**
+                 * @see HasAttributes::castAttribute
+                 */
+                $fieldValue = match ($castType) {
+                    'int', 'integer' => (int)$fieldValue,
+                    'real', 'float', 'double' => $this->fromFloat($fieldValue),
+                    default => throw new OctobroApiException(sprintf(
+                        'Unexpected cast type %s for key %s',
+                        $castType,
+                        $this->fieldName
+                    )),
+                };
+            }
         }
 
         return new Primitive($fieldValue);

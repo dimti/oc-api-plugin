@@ -27,6 +27,11 @@ abstract class Transformer extends TransformerAbstract
 
     public $defaultIncludes = [];
 
+    /**
+     * @var array<string, string>
+     */
+    public array $dynamicCasts = [];
+
     public $availableIncludes = [];
 
     protected $additionalFields = [];

@@ -11,6 +11,7 @@ use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
+use Octobro\API\Plugin;
 use Str;
 use Winter\Storm\Argon\Argon;
 use Winter\Storm\Database\Pivot;
@@ -334,13 +335,18 @@ class DynamicInclude extends ExtensionBase
 
     /**
      * @throws OctobroApiException
+     * @see Plugin::boot()
      */
     private function getPrimitive(): Primitive
     {
         $fieldValue = $this->getValueFromSnakeCaseField();
 
         if ($fieldValue instanceof Argon) {
-            $fieldValue = $fieldValue->toISOString(true);
+            if ($this->model->attributes[$this->getFieldNameSnakeCase()] == '0000-00-00 00:00:00') {
+                $fieldValue = null;
+            } else {
+                $fieldValue = $fieldValue->toISOString(true);
+            }
         } else {
             $castType = null;
 

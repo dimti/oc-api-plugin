@@ -9,6 +9,7 @@ use Fruitcake\Cors\HandleCors;
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Support\Facades\Date;
 use Octobro\API\Classes\Registration\ExtendServiceContainer;
+use Octobro\API\Classes\Transformer\DynamicInclude;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use System\Classes\PluginBase;
 use Winter\Storm\Database\Model;
@@ -19,6 +20,10 @@ class Plugin extends PluginBase
 
     private string $localTimezone;
 
+    /**
+     * @return void
+     * @see DynamicInclude::getPrimitive
+     */
     public function boot()
     {
         // Register Cors

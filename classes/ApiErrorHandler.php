@@ -3,12 +3,14 @@
 namespace Octobro\API\Classes;
 
 use Config;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
  * Class ApiErrorRenderer
  */
 class ApiErrorHandler {
+    public const ON_RENDER_EVENT = 'octobro.api.onRenderApiError';
 
     /**
      * Simple error handling: wrap an error in array for any error/exception to be rendered in same structure
@@ -20,7 +22,7 @@ class ApiErrorHandler {
     {
         $error = [
             'code' => 'INTERNAL_ERROR: ' . class_basename($e),
-            'http_code' => $e->getCode() ?? 500,
+            'http_code' => $this->resolveStatusCode($e),
             'message' => $e->getMessage(),
         ];
 
@@ -35,9 +37,33 @@ class ApiErrorHandler {
             $error['trace'] = explode("\n", $e->getTraceAsString());
         }
 
+        \Event::fire(static::ON_RENDER_EVENT, [&$error, $e], true);
+
         // put under 'errors' key and return
         return [
             'errors' => $error
         ];
+    }
+
+    /**
+     * Resolve HTTP status code
+     *
+     * @param Throwable $e
+     *
+     * @return int
+     */
+    protected function resolveStatusCode(Throwable $e): int
+    {
+        if ($e instanceof HttpExceptionInterface) {
+            return $e->getStatusCode();
+        }
+
+        $code = $e->getCode() ?? 500;
+
+        if ($code >= 400 && $code < 500) {
+            return $code;
+        }
+
+        return 500;
     }
 }

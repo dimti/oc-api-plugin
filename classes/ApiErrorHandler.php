@@ -10,6 +10,7 @@ use Throwable;
  * Class ApiErrorRenderer
  */
 class ApiErrorHandler {
+    public const ON_RENDER_EVENT = 'octobro.api.onRenderApiError';
 
     /**
      * Simple error handling: wrap an error in array for any error/exception to be rendered in same structure
@@ -36,6 +37,8 @@ class ApiErrorHandler {
             $error['trace'] = explode("\n", $e->getTraceAsString());
         }
 
+        \Event::fire(static::ON_RENDER_EVENT, [&$error, $e], true);
+
         // put under 'errors' key and return
         return [
             'errors' => $error
@@ -55,6 +58,12 @@ class ApiErrorHandler {
             return $e->getStatusCode();
         }
 
-        return $e->getCode() ?? 500;
+        $code = $e->getCode() ?? 500;
+
+        if ($code >= 400 && $code < 500) {
+            return $code;
+        }
+
+        return 500;
     }
 }

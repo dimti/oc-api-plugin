@@ -7,6 +7,7 @@ use League\Fractal\Resource\NullResource;
 use League\Fractal\Resource\Primitive;
 use October\Rain\Database\Model;
 use October\Rain\Extension\ExtensionBase;
+use Octobro\API\Classes\ApiController;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
@@ -77,6 +78,10 @@ class DynamicInclude extends ExtensionBase
 
                 return $pivot->only($relationDefinition['pivot']);
             });
+        }
+
+        if (Str::endsWith($fieldName, ApiController::WITH_DELETED_RELATION_SUFFIX)) {
+            $fieldName = substr($fieldName, 0, -strlen(ApiController::WITH_DELETED_RELATION_SUFFIX));
         }
 
         $this->setFieldName($fieldName);

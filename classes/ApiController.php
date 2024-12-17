@@ -12,6 +12,7 @@ use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;
+use Str;
 use Symfony\Component\Yaml\Dumper as YamlDumper;
 use League\Fractal\Manager;
 use League\Fractal\Resource\Item;
@@ -29,6 +30,8 @@ class ApiController extends Controller
     const CODE_UNAUTHORIZED = 'UNAUTHORIZED';
     const CODE_FORBIDDEN = 'FORBIDDEN';
     const CODE_INVALID_MIME_TYPE = 'INVALID_MIME_TYPE';
+
+    const WITH_DELETED_RELATION_SUFFIX = 'WithDeleted';
 
     public array $implement = [];
 
@@ -140,10 +143,24 @@ class ApiController extends Controller
 
             $fullMaybeRelationWithPath = count($previousParts) ? implode('.', $previousParts) . '.' . $maybeRelation : $maybeRelation;
 
-            if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
+            $isCalledWithDeleted = Str::endsWith($fullMaybeRelationWithPath, self::WITH_DELETED_RELATION_SUFFIX);
+
+            if ($isCalledWithDeleted) {
+                $fullMaybeRelationWithPath = substr($fullMaybeRelationWithPath, 0, -strlen(self::WITH_DELETED_RELATION_SUFFIX));
+                $maybeRelation = substr($maybeRelation, 0, -strlen(self::WITH_DELETED_RELATION_SUFFIX));
+            }
+
+            if (count($includeParts) || (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath)) && (
+                    !in_array($fullMaybeRelationWithPath, $possibleWiths) || !array_key_exists($fullMaybeRelationWithPath, $possibleWiths)
+                )
+            ) {
                 if ($this->hasRelation($model, $maybeRelation) && !$this->isMorphToRelation($model, $maybeRelation)) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
-                        $possibleWiths[] = $fullMaybeRelationWithPath;
+                        if ($isCalledWithDeleted) {
+                            $possibleWiths[$fullMaybeRelationWithPath] = fn($query) => $query->withTrashed();
+                        } else {
+                            $possibleWiths[] = $fullMaybeRelationWithPath;
+                        }
                     }
 
                     $previousParts[] = $maybeRelation;

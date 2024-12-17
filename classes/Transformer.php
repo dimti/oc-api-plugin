@@ -35,6 +35,7 @@ abstract class Transformer extends TransformerAbstract
     public $availableIncludes = [];
 
     protected $additionalFields = [];
+
     /**
      * Instantiate a new BackendController instance.
      */

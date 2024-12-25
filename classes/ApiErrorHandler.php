@@ -58,9 +58,13 @@ class ApiErrorHandler {
             return $e->getStatusCode();
         }
 
-        $code = $e->getCode() ?? 500;
+        $code = $e->getCode();
 
-        if ($code >= 400 && $code < 500) {
+        /**
+         * @desc This is not redundant
+         * @see Throwable::getCode
+         */
+        if (intval($code) == $code && ($code >= 400 && $code < 500)) {
             return $code;
         }
 

@@ -8,7 +8,9 @@ use Input;
 use Config;
 use Closure;
 use Cache;
+use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
+use ReflectionException;
 use Response;
 use SimpleXMLElement;
 use Illuminate\Routing\Controller;
@@ -138,6 +140,10 @@ class ApiController extends Controller
             return $relationExists;
         };
 
+        /**
+         * @throws ReflectionException
+         * @throws OctobroApiException
+         */
         $nerestPossibleWiths = function (Model $model, array &$includeParts, array $previousParts = []) use (&$possibleWiths, $getIsRelationExistsInGeneralWiths, &$nerestPossibleWiths) {
             $maybeRelation = array_shift($includeParts);
 
@@ -154,7 +160,7 @@ class ApiController extends Controller
                     !in_array($fullMaybeRelationWithPath, $possibleWiths) || !array_key_exists($fullMaybeRelationWithPath, $possibleWiths)
                 )
             ) {
-                if ($this->hasRelation($model, $maybeRelation) && !$this->isMorphToRelation($model, $maybeRelation)) {
+                if ($this->hasRelation($model, $maybeRelation) && (!$this->isMorphToRelation($model, $maybeRelation) || $this->isMorphContainRelation($model, $maybeRelation))) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
                         if ($isCalledWithDeleted) {
                             $possibleWiths[$fullMaybeRelationWithPath] = fn($query) => $query->withTrashed();

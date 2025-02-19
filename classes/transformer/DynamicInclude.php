@@ -390,9 +390,9 @@ class DynamicInclude extends ExtensionBase
         return !$this->getValue();
     }
 
-    private function getNullResource(): NullResource
+    private function getNullResource(): Primitive
     {
-        return new NullResource();
+        return new Primitive(null);
     }
 
     /**

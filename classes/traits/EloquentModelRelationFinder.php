@@ -269,8 +269,10 @@ trait EloquentModelRelationFinder
 
     /**
      * @param Model|string $parentModel
+     * @param array|null $relationTypeFilter
      * @return Collection<string, array|string>
      * @throws ReflectionException
+     * @desc Этот метод возвратит массив, где ключи - это название реляций, а значения - это relationDefinition
      */
     public function getRelations(Model|string $parentModel, array $relationTypeFilter = null): Collection
     {

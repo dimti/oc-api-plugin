@@ -13,6 +13,7 @@ use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use Octobro\API\Classes\Transformer;
 use Config;
 use Octobro\API\Plugin;
+use Spatie\DataTransferObject\DataTransferObject;
 use Str;
 use Winter\Storm\Argon\Argon;
 use Winter\Storm\Database\Pivot;
@@ -31,7 +32,7 @@ class DynamicInclude extends ExtensionBase
 
     private string $fieldName;
 
-    private Model $model;
+    private Model|DataTransferObject $model;
 
     private bool $isSingularRelation;
 
@@ -52,7 +53,7 @@ class DynamicInclude extends ExtensionBase
      * @throws \ReflectionException
      * @throws OctobroApiException
      */
-    public function getDynamicInclude(string $fieldName, Model $model)
+    public function getDynamicInclude(string $fieldName, Model|DataTransferObject $model)
     {
         if ($fieldName == 'pivot') {
             return new Item($model->$fieldName, function (?Pivot $pivot) use ($fieldName) {
@@ -286,9 +287,9 @@ class DynamicInclude extends ExtensionBase
     }
 
     /**
-     * @param Model $model
+     * @param Model|DataTransferObject $model
      */
-    public function setModel(Model $model): void
+    public function setModel(Model|DataTransferObject $model): void
     {
         $this->model = $model;
     }
@@ -310,20 +311,27 @@ class DynamicInclude extends ExtensionBase
     }
 
     /**
-     * @return Model
+     * @return Model|DataTransferObject
      */
-    public function getModel(): Model
+    public function getModel(): Model|DataTransferObject
     {
         return $this->model;
     }
 
     private function hasSimpleAttributeOrMutator(): bool
     {
-        return array_key_exists($this->getFieldNameSnakeCase(), $this->getModel()->attributes) || $this->getModel()->hasGetMutator($this->getFieldName());
+        $snakeFieldName = $this->getFieldNameSnakeCase();
+
+        $model = $this->getModel();
+
+        return property_exists($model, $snakeFieldName)
+            || array_key_exists($snakeFieldName, $model->attributes)
+            || $model->hasGetMutator($this->getFieldName())
+        ;
     }
 
     /**
-     * @return mixed|string|Model|\Illuminate\Support\Collection
+     * @return mixed|string|Model|DataTransferObject|\Illuminate\Support\Collection
      */
     private function getValue()
     {

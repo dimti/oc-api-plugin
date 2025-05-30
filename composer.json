@@ -6,6 +6,7 @@
     "require": {
         "php": ">=7.2.9",
         "league/fractal": "^0.19",
-        "fruitcake/laravel-cors": "^2.0"
+        "fruitcake/laravel-cors": "^2.0",
+        "spatie/data-transfer-object": "^3.9"
     }
 }

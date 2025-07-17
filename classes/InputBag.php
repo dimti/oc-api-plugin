@@ -30,10 +30,10 @@ class InputBag
 
     /**
      * @param string $key
-     * @param string|null $default
+     * @param string|array|null $default
      * @return mixed
      */
-    public function get(string $key, ?string $default = null)
+    public function get(string $key, string|array $default = null)
     {
         return array_get($this->input, $key, $default);
     }

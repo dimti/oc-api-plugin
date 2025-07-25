@@ -216,11 +216,167 @@ abstract class Transformer extends TransformerAbstract
             }
         }
 
+        if (!$scope->getScopeIdentifier()) {
+            $includes = request()->get('include');
+
+            // Check if includes contains bracket notation
+            if ($includes && strpos($includes, '(') !== false) {
+                // Transform bracket notation to dot notation
+                $dotIncludes = $this->transformBracketToDotNotation($includes);
+
+                // Parse the transformed includes
+                $scope->getManager()->parseIncludes($dotIncludes);
+            } elseif ($includes) {
+                // If no bracket notation, just parse the includes as is
+                $scope->getManager()->parseIncludes($includes);
+            }
+        }
+
         return parent::processIncludedResources($scope, $data);
     }
 
     public function hasDynamicInclude(string $fieldName): bool
     {
         return array_key_exists(camel_case('include ' . $fieldName), $this->extensionData['dynamicMethods']);
+    }
+
+    /**
+     * Transform bracket notation to dot notation for includes
+     * Example: type(id,code) -> type.id,type.code
+     *
+     * @param string $includes
+     * @return string
+     */
+    protected function transformBracketToDotNotation(string $includes): string
+    {
+        // Process each include segment separately, but only split at top level
+        $segments = $this->splitTopLevelCommas($includes);
+        $result = [];
+
+        foreach ($segments as $segment) {
+            $segment = trim($segment);
+
+            // If segment contains bracket notation
+            if (strpos($segment, '(') !== false && strpos($segment, ')') !== false) {
+                $result = array_merge($result, $this->processBracketNotation($segment));
+            } else {
+                $result[] = $segment;
+            }
+        }
+
+        return implode(',', $result);
+    }
+
+    /**
+     * Process a single bracket notation segment
+     * Example: type(id,code) -> [type.id, type.code]
+     *
+     * @param string $segment
+     * @return array
+     */
+    protected function processBracketNotation(string $segment): array
+    {
+        // Find the position of the first opening bracket
+        $openPos = strpos($segment, '(');
+        if ($openPos === false) {
+            return [$segment];
+        }
+
+        // Get the relation name (everything before the first opening bracket)
+        $relation = substr($segment, 0, $openPos);
+
+        // Find the matching closing bracket
+        $closePos = $this->findMatchingClosingBracket($segment, $openPos);
+        if ($closePos === false) {
+            return [$segment];
+        }
+
+        // Get the content inside the brackets
+        $content = substr($segment, $openPos + 1, $closePos - $openPos - 1);
+
+        // Split the content by commas, but only at the top level
+        $fields = $this->splitTopLevelCommas($content);
+
+        // Transform to dot notation
+        $dotNotation = [];
+        foreach ($fields as $field) {
+            $field = trim($field);
+
+            // If field contains bracket notation, process it recursively
+            if (strpos($field, '(') !== false && strpos($field, ')') !== false) {
+                $subResults = $this->processBracketNotation($field);
+                foreach ($subResults as $subResult) {
+                    $dotNotation[] = $relation . '.' . $subResult;
+                }
+            } else {
+                $dotNotation[] = $relation . '.' . $field;
+            }
+        }
+
+        return $dotNotation;
+    }
+
+    /**
+     * Find the position of the matching closing bracket
+     *
+     * @param string $str
+     * @param int $openPos
+     * @return int|false
+     */
+    protected function findMatchingClosingBracket(string $str, int $openPos)
+    {
+        $level = 0;
+        $len = strlen($str);
+
+        for ($i = $openPos; $i < $len; $i++) {
+            if ($str[$i] === '(') {
+                $level++;
+            } elseif ($str[$i] === ')') {
+                $level--;
+                if ($level === 0) {
+                    return $i;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Split a string by commas, but only at the top level
+     * Example: "a,b(c,d),e" -> ["a", "b(c,d)", "e"]
+     *
+     * @param string $str
+     * @return array
+     */
+    protected function splitTopLevelCommas(string $str): array
+    {
+        $result = [];
+        $current = '';
+        $level = 0;
+        $len = strlen($str);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $str[$i];
+
+            if ($char === '(') {
+                $level++;
+                $current .= $char;
+            } elseif ($char === ')') {
+                $level--;
+                $current .= $char;
+            } elseif ($char === ',' && $level === 0) {
+                $result[] = $current;
+                $current = '';
+            } else {
+                $current .= $char;
+            }
+        }
+
+        if ($current !== '') {
+            $result[] = $current;
+        }
+
+        return $result;
     }
 }

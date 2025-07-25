@@ -1,6 +1,7 @@
 <?php namespace Octobro\API\Classes\Transformer;
 
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
+use Illuminate\Support\Facades\Gate;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\Resource\NullResource;
@@ -112,9 +113,12 @@ class DynamicInclude extends ExtensionBase
                 }
 
                 if ($this->isSingularRelation()) {
-                    return new Item($model->$fieldName, $transformer);
+                    return Gate::denies('view', $model->$fieldName)
+                        ? new Primitive(null)
+                        : new Item($model->$fieldName, $transformer);
                 } else {
-                    return new Collection($model->$fieldName, $transformer);
+                    $collection = $model->$fieldName->filter(fn($item) => !Gate::denies('view', $item));
+                    return new Collection($collection, $transformer);
                 }
             }
         }

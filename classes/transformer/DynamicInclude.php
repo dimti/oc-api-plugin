@@ -114,8 +114,8 @@ class DynamicInclude extends ExtensionBase
 
                 if ($this->isSingularRelation()) {
                     return $this->checkGateViewAccess($model->$fieldName)
-                        ? new Primitive(null)
-                        : new Item($model->$fieldName, $transformer);
+                        ? new Item($model->$fieldName, $transformer)
+                        : new Primitive(null);
                 } else {
                     $collection = $model->$fieldName->filter($this->checkGateViewAccess(...));
                     return new Collection($collection, $transformer);

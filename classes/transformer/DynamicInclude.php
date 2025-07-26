@@ -149,8 +149,14 @@ class DynamicInclude extends ExtensionBase
             return true;
         }
 
+        $policy = Gate::getPolicyFor($item);
+
+        if (!$policy || !method_exists($policy, 'view')) {
+            return true;
+        }
+
         // Gate is available, let it work
-        return !Gate::denies('view', $item);
+        return Gate::allows('view', $item);
     }
 
     private function prepareRelationDefinition(): void

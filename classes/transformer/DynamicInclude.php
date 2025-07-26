@@ -74,7 +74,7 @@ class DynamicInclude extends ExtensionBase
                     throw new OctobroApiException(sprintf(
                         'Unable to find pivot definition for %s in model %s',
                         $relationName,
-                        class_basename($parentModel))
+                        class_basename($parentModel)),
                     );
                 }
 
@@ -113,11 +113,11 @@ class DynamicInclude extends ExtensionBase
                 }
 
                 if ($this->isSingularRelation()) {
-                    return Gate::denies('view', $model->$fieldName)
+                    return $this->checkGateViewAccess($model->$fieldName)
                         ? new Primitive(null)
                         : new Item($model->$fieldName, $transformer);
                 } else {
-                    $collection = $model->$fieldName->filter(fn($item) => !Gate::denies('view', $item));
+                    $collection = $model->$fieldName->filter($this->checkGateViewAccess(...));
                     return new Collection($collection, $transformer);
                 }
             }
@@ -126,8 +126,31 @@ class DynamicInclude extends ExtensionBase
         throw new OctobroApiException(sprintf(
             'Unable to find transformer include function for %s of model %s',
             $this->getFieldName(),
-            get_class($this->getModel())
+            get_class($this->getModel()),
         ));
+    }
+
+    /**
+     * Check view access
+     *
+     * @param mixed $item - related model
+     * @return bool
+     */
+    private function checkGateViewAccess(mixed $item): bool
+    {
+        // when no related model, let user see without checks
+        if (!$item) {
+            return true;
+        }
+
+        // no Gate instance in the application
+        // to avoid instantiating exception, just allow access
+        if (!app()->bound(\Illuminate\Contracts\Auth\Access\Gate::class)) {
+            return true;
+        }
+
+        // Gate is available, let it work
+        return !Gate::denies('view', $item);
     }
 
     private function prepareRelationDefinition(): void
@@ -383,7 +406,7 @@ class DynamicInclude extends ExtensionBase
                     default => throw new OctobroApiException(sprintf(
                         'Unexpected cast type %s for key %s',
                         $castType,
-                        $this->fieldName
+                        $this->fieldName,
                     )),
                 };
             }

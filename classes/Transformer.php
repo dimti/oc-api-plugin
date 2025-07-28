@@ -219,8 +219,8 @@ abstract class Transformer extends TransformerAbstract
         if (!$scope->getScopeIdentifier()) {
             $includes = request()->get('include');
 
-            // Check if includes contains bracket notation
-            if ($includes && strpos($includes, '(') !== false) {
+            // Check if includes contains bracket notation (but not just parameter notation)
+            if ($includes && $this->containsBracketNotation($includes)) {
                 // Transform bracket notation to dot notation
                 $dotIncludes = $this->transformBracketToDotNotation($includes);
 
@@ -270,6 +270,7 @@ abstract class Transformer extends TransformerAbstract
     /**
      * Process a single bracket notation segment
      * Example: type(id,code) -> [type.id, type.code]
+     * Preserves parameter notation like thumb:size(250|32)
      *
      * @param string $segment
      * @return array
@@ -280,6 +281,17 @@ abstract class Transformer extends TransformerAbstract
         $openPos = strpos($segment, '(');
         if ($openPos === false) {
             return [$segment];
+        }
+
+        // Check if this is parameter notation (has colon before bracket without comma between)
+        $colonPos = strrpos(substr($segment, 0, $openPos), ':');
+        if ($colonPos !== false) {
+            // Check if there's a comma between colon and bracket
+            $commaPos = strpos(substr($segment, $colonPos, $openPos - $colonPos), ',');
+            if ($commaPos === false) {
+                // This is parameter notation, return as is
+                return [$segment];
+            }
         }
 
         // Get the relation name (everything before the first opening bracket)
@@ -297,10 +309,27 @@ abstract class Transformer extends TransformerAbstract
         // Split the content by commas, but only at the top level
         $fields = $this->splitTopLevelCommas($content);
 
+        // Add the relation itself to the result
+        $dotNotation = [$relation];
+
         // Transform to dot notation
-        $dotNotation = [];
         foreach ($fields as $field) {
             $field = trim($field);
+
+            // Check if field contains parameter notation
+            $fieldOpenPos = strpos($field, '(');
+            if ($fieldOpenPos !== false) {
+                $fieldColonPos = strrpos(substr($field, 0, $fieldOpenPos), ':');
+                if ($fieldColonPos !== false) {
+                    // Check if there's a comma between colon and bracket
+                    $fieldCommaPos = strpos(substr($field, $fieldColonPos, $fieldOpenPos - $fieldColonPos), ',');
+                    if ($fieldCommaPos === false) {
+                        // This is parameter notation, preserve it
+                        $dotNotation[] = $relation . '.' . $field;
+                        continue;
+                    }
+                }
+            }
 
             // If field contains bracket notation, process it recursively
             if (strpos($field, '(') !== false && strpos($field, ')') !== false) {
@@ -337,6 +366,45 @@ abstract class Transformer extends TransformerAbstract
                     return $i;
                 }
             }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the includes string contains bracket notation that should be transformed
+     * Ignores parameter notation like ":size(250|32)" which should not be transformed
+     *
+     * @param string $includes
+     * @return bool
+     */
+    protected function containsBracketNotation(string $includes): bool
+    {
+        // Split by commas at top level
+        $segments = $this->splitTopLevelCommas($includes);
+
+        foreach ($segments as $segment) {
+            $segment = trim($segment);
+
+            // Check for opening bracket
+            $openPos = strpos($segment, '(');
+            if ($openPos === false) {
+                continue;
+            }
+
+            // Check if this is parameter notation (has colon before bracket without comma between)
+            $colonPos = strrpos(substr($segment, 0, $openPos), ':');
+            if ($colonPos !== false) {
+                // Check if there's a comma between colon and bracket
+                $commaPos = strpos(substr($segment, $colonPos, $openPos - $colonPos), ',');
+                if ($commaPos === false) {
+                    // This is parameter notation, skip it
+                    continue;
+                }
+            }
+
+            // This is bracket notation
+            return true;
         }
 
         return false;

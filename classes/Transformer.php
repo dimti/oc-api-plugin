@@ -219,6 +219,10 @@ abstract class Transformer extends TransformerAbstract
         if (!$scope->getScopeIdentifier()) {
             $includes = request()->get('include');
 
+            if (is_array($includes)) {
+                $includes = implode(',', $includes);
+            }
+
             // Check if includes contains bracket notation (but not just parameter notation)
             if ($includes && $this->containsBracketNotation($includes)) {
                 // Transform bracket notation to dot notation

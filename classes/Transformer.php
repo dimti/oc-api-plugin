@@ -224,9 +224,9 @@ abstract class Transformer extends TransformerAbstract
             }
 
             // Check if includes contains bracket notation (but not just parameter notation)
-            if ($includes && $this->containsBracketNotation($includes)) {
+            if ($includes && Transformer::containsBracketNotation($includes)) {
                 // Transform bracket notation to dot notation
-                $dotIncludes = $this->transformBracketToDotNotation($includes);
+                $dotIncludes = Transformer::transformBracketToDotNotation($includes);
 
                 // Parse the transformed includes
                 $scope->getManager()->parseIncludes($dotIncludes);
@@ -251,10 +251,10 @@ abstract class Transformer extends TransformerAbstract
      * @param string $includes
      * @return string
      */
-    protected function transformBracketToDotNotation(string $includes): string
+    public static function transformBracketToDotNotation(string $includes): string
     {
         // Process each include segment separately, but only split at top level
-        $segments = $this->splitTopLevelCommas($includes);
+        $segments = self::splitTopLevelCommas($includes);
         $result = [];
 
         foreach ($segments as $segment) {
@@ -262,7 +262,7 @@ abstract class Transformer extends TransformerAbstract
 
             // If segment contains bracket notation
             if (strpos($segment, '(') !== false && strpos($segment, ')') !== false) {
-                $result = array_merge($result, $this->processBracketNotation($segment));
+                $result = array_merge($result, self::processBracketNotation($segment));
             } else {
                 $result[] = $segment;
             }
@@ -279,7 +279,7 @@ abstract class Transformer extends TransformerAbstract
      * @param string $segment
      * @return array
      */
-    protected function processBracketNotation(string $segment): array
+    protected static function processBracketNotation(string $segment): array
     {
         // Find the position of the first opening bracket
         $openPos = strpos($segment, '(');
@@ -302,7 +302,7 @@ abstract class Transformer extends TransformerAbstract
         $relation = substr($segment, 0, $openPos);
 
         // Find the matching closing bracket
-        $closePos = $this->findMatchingClosingBracket($segment, $openPos);
+        $closePos = self::findMatchingClosingBracket($segment, $openPos);
         if ($closePos === false) {
             return [$segment];
         }
@@ -311,7 +311,7 @@ abstract class Transformer extends TransformerAbstract
         $content = substr($segment, $openPos + 1, $closePos - $openPos - 1);
 
         // Split the content by commas, but only at the top level
-        $fields = $this->splitTopLevelCommas($content);
+        $fields = self::splitTopLevelCommas($content);
 
         // Add the relation itself to the result
         $dotNotation = [$relation];
@@ -337,7 +337,7 @@ abstract class Transformer extends TransformerAbstract
 
             // If field contains bracket notation, process it recursively
             if (strpos($field, '(') !== false && strpos($field, ')') !== false) {
-                $subResults = $this->processBracketNotation($field);
+                $subResults = self::processBracketNotation($field);
                 foreach ($subResults as $subResult) {
                     $dotNotation[] = $relation . '.' . $subResult;
                 }
@@ -356,7 +356,7 @@ abstract class Transformer extends TransformerAbstract
      * @param int $openPos
      * @return int|false
      */
-    protected function findMatchingClosingBracket(string $str, int $openPos)
+    protected static function findMatchingClosingBracket(string $str, int $openPos)
     {
         $level = 0;
         $len = strlen($str);
@@ -382,10 +382,10 @@ abstract class Transformer extends TransformerAbstract
      * @param string $includes
      * @return bool
      */
-    protected function containsBracketNotation(string $includes): bool
+    public static function containsBracketNotation(string $includes): bool
     {
         // Split by commas at top level
-        $segments = $this->splitTopLevelCommas($includes);
+        $segments = self::splitTopLevelCommas($includes);
 
         foreach ($segments as $segment) {
             $segment = trim($segment);
@@ -421,7 +421,7 @@ abstract class Transformer extends TransformerAbstract
      * @param string $str
      * @return array
      */
-    protected function splitTopLevelCommas(string $str): array
+    protected static function splitTopLevelCommas(string $str): array
     {
         $result = [];
         $current = '';

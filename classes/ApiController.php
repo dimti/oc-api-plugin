@@ -160,7 +160,7 @@ class ApiController extends Controller
                     !in_array($fullMaybeRelationWithPath, $possibleWiths) || !array_key_exists($fullMaybeRelationWithPath, $possibleWiths)
                 )
             ) {
-                if ($this->hasRelation($model, $maybeRelation) && (!$this->isMorphToRelation($model, $maybeRelation) || $this->isMorphContainRelation($model, $maybeRelation))) {
+                if ($this->hasRelation($model, $maybeRelation)) {
                     if (!$getIsRelationExistsInGeneralWiths($fullMaybeRelationWithPath) && !in_array($fullMaybeRelationWithPath, $possibleWiths)) {
                         if ($isCalledWithDeleted) {
                             $possibleWiths[$fullMaybeRelationWithPath] = fn($query) => $query->withTrashed();
@@ -171,7 +171,7 @@ class ApiController extends Controller
 
                     $previousParts[] = $maybeRelation;
 
-                    if (count($includeParts)) {
+                    if (count($includeParts) && !$this->isMorphToRelation($model, $maybeRelation)) {
                         $nerestPossibleWiths($this->getRelationModel($model, $maybeRelation), $includeParts, $previousParts);
                     }
                 }

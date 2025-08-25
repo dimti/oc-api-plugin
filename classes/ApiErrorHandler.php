@@ -3,6 +3,9 @@
 namespace Octobro\API\Classes;
 
 use Config;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
@@ -18,11 +21,13 @@ class ApiErrorHandler {
      * @param Throwable $e
      * @return array
      */
-    public function render(Throwable $e): array
+    public function render(Throwable $e): JsonResponse
     {
+        $statusCode = $this->resolveStatusCode($e);
+
         $error = [
             'code' => 'INTERNAL_ERROR: ' . class_basename($e),
-            'http_code' => $this->resolveStatusCode($e),
+            'http_code' => $statusCode,
             'message' => $e->getMessage(),
         ];
 
@@ -39,10 +44,9 @@ class ApiErrorHandler {
 
         \Event::fire(static::ON_RENDER_EVENT, [&$error, $e], true);
 
-        // put under 'errors' key and return
-        return [
+        return response()->json([
             'errors' => $error
-        ];
+        ], $statusCode);
     }
 
     /**
@@ -56,6 +60,10 @@ class ApiErrorHandler {
     {
         if ($e instanceof HttpExceptionInterface) {
             return $e->getStatusCode();
+        }
+
+        if ($e instanceof \Winter\Storm\Exception\ValidationException) {
+            return 422;
         }
 
         $code = $e->getCode();

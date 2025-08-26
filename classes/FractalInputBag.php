@@ -14,16 +14,16 @@ class FractalInputBag
 
     public function __construct(array $include = [], array $exclude = [])
     {
-        $include = Input::get('include', '');
+        if (empty($include)) {
+            $include = Input::get('include', '');
+            $include = Transformer::containsBracketNotation($include)
+                ? Transformer::transformBracketToDotNotation($include)
+                : $include;
 
-        if (Transformer::containsBracketNotation($include)) {
-            $dotInclude = Transformer::transformBracketToDotNotation($include);
-        } else {
-            $dotInclude = $include;
+            $include = $include ? explode(',', $include) : [];
         }
 
-        $this->include = explode(',', $dotInclude);
-
+        $this->include = $include;
         $this->exclude = $this->getInputAsArray('exclude') ?: $exclude;
     }
 

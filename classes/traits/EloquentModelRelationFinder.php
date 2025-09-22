@@ -286,7 +286,7 @@ trait EloquentModelRelationFinder
                 fn($relationDefinition, $relationName) => $relations->offsetSet($relationName, $relationDefinition)
             ));
 
-        return $relations;
+        return $relations->filter(fn($relationDefinition) => !is_array($relationDefinition) || !array_key_exists('can', $relationDefinition) || $relationDefinition['can'] != 'pass');
     }
 
     /**

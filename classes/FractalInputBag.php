@@ -16,6 +16,11 @@ class FractalInputBag
     {
         if (empty($include)) {
             $include = Input::get('include', '');
+
+            if (is_array($include)) {
+                $include = implode(',', $include);
+            }
+
             $include = Transformer::containsBracketNotation($include)
                 ? Transformer::transformBracketToDotNotation($include)
                 : $include;

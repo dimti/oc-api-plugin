@@ -377,7 +377,7 @@ abstract class Transformer extends TransformerAbstract
 
     /**
      * Check if the includes string contains bracket notation that should be transformed
-     * Ignores parameter notation like ":size(250|32)" which should not be transformed
+     * Ignores parameter notation like ":size(250|32)" which should not be transformed (re: по-моему это уже решено)
      *
      * @param string $includes
      * @return bool

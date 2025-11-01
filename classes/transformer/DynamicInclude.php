@@ -82,7 +82,9 @@ class DynamicInclude extends ExtensionBase
             });
         }
 
+        $withDeletes = false;
         if (Str::endsWith($fieldName, ApiController::WITH_DELETED_RELATION_SUFFIX)) {
+            $withDeletes = true;
             $fieldName = substr($fieldName, 0, -strlen(ApiController::WITH_DELETED_RELATION_SUFFIX));
         }
 
@@ -117,7 +119,9 @@ class DynamicInclude extends ExtensionBase
                         ? new Item($model->$fieldName, $transformer)
                         : new Primitive(null);
                 } else {
-                    $collection = $model->$fieldName->filter($this->checkGateViewAccess(...));
+                    $relatedModel = $withDeletes ? $model->$fieldName()->withTrashed()->get() : $model->$fieldName;
+                    $collection = $relatedModel->filter($this->checkGateViewAccess(...));
+
                     return new Collection($collection, $transformer);
                 }
             }

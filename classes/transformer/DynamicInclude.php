@@ -199,6 +199,14 @@ class DynamicInclude extends ExtensionBase
             $this->isSingularRelation = false;
 
             $this->relationDefinition = $this->getModel()->morphMany[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasOneThrough)) {
+            $this->isSingularRelation = true;
+
+            $this->relationDefinition = $this->getModel()->hasOneThrough[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasManyThrough)) {
+            $this->isSingularRelation = false;
+
+            $this->relationDefinition = $this->getModel()->hasManyThrough[$this->getFieldName()];
         } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphTo)) {
             $this->isSingularRelation = true;
 

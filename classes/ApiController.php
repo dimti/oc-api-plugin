@@ -4,6 +4,7 @@ use App;
 use Error;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Input;
 use Config;
 use Closure;
@@ -543,5 +544,13 @@ class ApiController extends Controller
     public function errorWrongArgs($message = 'Wrong Arguments')
     {
         return $this->setStatusCode(400)->respondWithError($message, self::CODE_WRONG_ARGS);
+    }
+
+    protected function makeSuccessResponse(string $message): \Illuminate\Http\Response
+    {
+        return $this->respondWithArray([
+            'success' => true,
+            'message' => $message,
+        ]);
     }
 }

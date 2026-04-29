@@ -462,7 +462,7 @@ trait DynamicInclude
      */
     public function hasTransformerClass(): bool
     {
-        return !!isset($thisClass);
+        return !!isset($this->transformerClass);
     }
 
     /**
@@ -470,7 +470,7 @@ trait DynamicInclude
      */
     public function getTransformerClass(): string
     {
-        return $thisClass;
+        return $this->transformerClass;
     }
 
     /**
@@ -478,7 +478,7 @@ trait DynamicInclude
      */
     public function setTransformerClass(string $transformerClass): void
     {
-        $thisClass = $transformerClass;
+        $this->transformerClass = $transformerClass;
     }
 
     public function unsetTransformerClass(): void

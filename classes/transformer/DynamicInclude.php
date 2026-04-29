@@ -1,4 +1,6 @@
-<?php namespace Octobro\API\Classes\Transformer;
+<?php
+
+namespace Octobro\API\Classes\Transformer;
 
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Support\Facades\Gate;
@@ -19,11 +21,9 @@ use Str;
 use Winter\Storm\Argon\Argon;
 use Winter\Storm\Database\Pivot;
 
-class DynamicInclude extends ExtensionBase
+trait DynamicInclude
 {
-    use EloquentModelRelationFinder, HasAttributes;
-
-    private Transformer $transformer;
+    use HasAttributes;
 
     private static string $defaultFileModelTransformer;
 
@@ -45,9 +45,9 @@ class DynamicInclude extends ExtensionBase
 
     private bool $isFoundTransformer = false;
 
-    public function __construct(Transformer $transformer)
+    public function hasDynamicInclude(string $fieldName): bool
     {
-        $this->transformer = $transformer;
+        return array_key_exists(camel_case('include ' . $fieldName), $this->extensionData['dynamicMethods']);
     }
 
     /**
@@ -66,7 +66,7 @@ class DynamicInclude extends ExtensionBase
 
                 $relationModel = $this->model;
 
-                $relationName = $this->transformer->getCurrentScope()->getScopeIdentifier();
+                $relationName = $this->getCurrentScope()->getScopeIdentifier();
 
                 $relationDefinition = $this->getRelationDefinition($parentModel, $relationName);
 
@@ -96,7 +96,7 @@ class DynamicInclude extends ExtensionBase
             return $this->getPrimitive();
         }
 
-        if ($this->hasRelation()) {
+        if ($this->currentFieldIsRelation()) {
             if ($this->isCountRelation($model, $fieldName)) {
                 return new Primitive($model->$fieldName->first()?->count ?? 0);
             } elseif ($this->hasNoValue()) {
@@ -110,8 +110,8 @@ class DynamicInclude extends ExtensionBase
             if ($this->isFoundTransformer()) {
                 $transformer = app($this->getTransformerClass());
 
-                if (collect($this->transformer->getCurrentScope()->getManager()->getRequestedIncludes())->contains('children')) {
-                    $transformer->defaultIncludes = $this->transformer->getCurrentScopeIncludes($fieldName);
+                if (collect($this->getCurrentScope()->getManager()->getRequestedIncludes())->contains('children')) {
+                    $transformer->defaultIncludes = $this->getCurrentScopeIncludes($fieldName);
                 }
 
                 if ($this->isSingularRelation()) {
@@ -357,6 +357,7 @@ class DynamicInclude extends ExtensionBase
 
     /**
      * @return Model|DataTransferObject
+     * TODO: wtf this exists dto classes
      */
     public function getModel(): Model|DataTransferObject
     {
@@ -408,10 +409,10 @@ class DynamicInclude extends ExtensionBase
         } else {
             $castType = null;
 
-            if (array_key_exists($this->fieldName, $this->transformer->dynamicCasts)) {
-                $castType = $this->transformer->dynamicCasts[$this->fieldName];
-            } elseif (array_key_exists(Str::snake($this->fieldName), $this->transformer->dynamicCasts)) {
-                $castType = $this->transformer->dynamicCasts[Str::snake($this->fieldName)];
+            if (array_key_exists($this->fieldName, $this->dynamicCasts)) {
+                $castType = $this->dynamicCasts[$this->fieldName];
+            } elseif (array_key_exists(Str::snake($this->fieldName), $this->dynamicCasts)) {
+                $castType = $this->dynamicCasts[Str::snake($this->fieldName)];
             }
 
             if (!is_null($castType)) {
@@ -433,7 +434,7 @@ class DynamicInclude extends ExtensionBase
         return new Primitive($fieldValue);
     }
 
-    private function hasRelation(): bool
+    private function currentFieldIsRelation(): bool
     {
         return $this->getModel()->hasRelation($this->getFieldName());
     }
@@ -461,7 +462,7 @@ class DynamicInclude extends ExtensionBase
      */
     public function hasTransformerClass(): bool
     {
-        return !!isset($this->transformerClass);
+        return !!isset($thisClass);
     }
 
     /**
@@ -469,7 +470,7 @@ class DynamicInclude extends ExtensionBase
      */
     public function getTransformerClass(): string
     {
-        return $this->transformerClass;
+        return $thisClass;
     }
 
     /**
@@ -477,12 +478,12 @@ class DynamicInclude extends ExtensionBase
      */
     public function setTransformerClass(string $transformerClass): void
     {
-        $this->transformerClass = $transformerClass;
+        $thisClass = $transformerClass;
     }
 
     public function unsetTransformerClass(): void
     {
-        unset($this->transformerClass);
+        unset($thisClass);
 
         $this->isFoundTransformer = false;
     }

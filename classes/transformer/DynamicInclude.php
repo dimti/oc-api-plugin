@@ -211,6 +211,19 @@ trait DynamicInclude
             $this->isSingularRelation = true;
 
             $this->relationDefinition = $this->model->getAttribute($this->getFieldName() . '_type');
+        } else if (method_exists($this->model, $this->getFieldName())
+            && method_exists($this->model, sprintf(
+                'get%sModelClassAndIsSingular',
+                ucfirst($this->getFieldName())
+            ))
+        ) {
+            $method = sprintf('get%sModelClassAndIsSingular', ucfirst($this->getFieldName()));
+
+            $dynamicMorphDefinition = $this->model->$method();
+
+            $this->relationDefinition = $dynamicMorphDefinition[0];
+
+            $this->isSingularRelation = $dynamicMorphDefinition[1];
         }
 
         $this->setRelatedModelClass(is_array($this->relationDefinition) ? $this->relationDefinition[0] : $this->relationDefinition);

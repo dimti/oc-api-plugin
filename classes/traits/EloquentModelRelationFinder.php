@@ -195,6 +195,17 @@ trait EloquentModelRelationFinder
             }
 
             return $relationClassName;
+        } else if (method_exists($parentModel, $mayBeRelation)
+            && method_exists($parentModel, sprintf(
+                'get%sModelClassAndIsSingular',
+                ucfirst($mayBeRelation)
+            ))
+        ) {
+
+            $method = sprintf('get%sModelClassAndIsSingular', ucfirst($mayBeRelation));
+
+            $dynamicMorphDefinition = $parentModel->$method();
+            return $dynamicMorphDefinition[0];
         }
 
         throw new EloquentRelationFinderException(sprintf(

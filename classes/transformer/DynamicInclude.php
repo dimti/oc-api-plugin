@@ -119,7 +119,10 @@ trait DynamicInclude
                         ? new Item($model->$fieldName, $transformer)
                         : new Primitive(null);
                 } else {
-                    $relatedModel = $withDeletes ? $model->$fieldName()->withTrashed()->get() : $model->$fieldName;
+                    $relatedModel = $withDeletes && !$model->relationLoaded($fieldName)
+                        ? $model->$fieldName()->withTrashed()->get()
+                        : $model->$fieldName;
+
                     $collection = $relatedModel->filter($this->checkGateViewAccess(...));
 
                     return new Collection($collection, $transformer);

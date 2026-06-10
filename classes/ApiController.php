@@ -9,6 +9,7 @@ use Input;
 use Config;
 use Closure;
 use Cache;
+use Octobro\API\Classes\Contracts\ResolvesEagerLoadFromInclude;
 use Octobro\API\Classes\Exceptions\OctobroApiException;
 use Octobro\API\Classes\Traits\EloquentModelRelationFinder;
 use ReflectionException;
@@ -123,6 +124,57 @@ class ApiController extends Controller
         return $this->cacheInvalidateInMinutes * 60;
     }
 
+    /**
+     * Register eager loading from 'ResolvesEagerLoadFromInclude' model
+     *
+     * @param Model $model
+     * @param string $includeName
+     * @param array $previousParts
+     * @param array $possibleWiths
+     * @param callable $getIsRelationExistsInGeneralWiths
+     * @return void
+     */
+    private function appendEagerLoadFromInclude(
+        Model $model,
+        string $includeName,
+        array $previousParts,
+        array &$possibleWiths,
+        callable $getIsRelationExistsInGeneralWiths,
+    ): void {
+        if (!$model instanceof ResolvesEagerLoadFromInclude) {
+            return;
+        }
+
+        $eagerLoad = $model->getEagerLoadFromInclude($includeName);
+
+        if (!$eagerLoad) {
+            return;
+        }
+
+        $prefix = $previousParts
+            ? implode('.', $previousParts) . '.'
+            : '';
+
+        foreach ($eagerLoad as $key => $value) {
+            $withPath = $prefix . (is_int($key) ? $value : $key);
+
+            $alreadyExists =
+                $getIsRelationExistsInGeneralWiths($withPath)
+                || in_array($withPath, $possibleWiths, true)
+                || array_key_exists($withPath, $possibleWiths);
+
+            if ($alreadyExists) {
+                continue;
+            }
+
+            if (is_int($key)) {
+                $possibleWiths[] = $withPath;
+            } else {
+                $possibleWiths[$withPath] = $value;
+            }
+        }
+    }
+
     public function getEloquentWithFromIncludes(Model $startingModelClass, array $generalWith, ?array $excludeWith = []): array
     {
         $possibleWiths = [];
@@ -175,6 +227,14 @@ class ApiController extends Controller
                     if (count($includeParts) && !$this->isMorphToRelation($model, $maybeRelation)) {
                         $nerestPossibleWiths($this->getRelationModel($model, $maybeRelation), $includeParts, $previousParts);
                     }
+                } elseif (count($includeParts) === 0) {
+                    $this->appendEagerLoadFromInclude(
+                        $model,
+                        $maybeRelation,
+                        $previousParts,
+                        $possibleWiths,
+                        $getIsRelationExistsInGeneralWiths,
+                    );
                 }
             }
         };

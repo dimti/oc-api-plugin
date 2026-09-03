@@ -146,6 +146,8 @@ trait EloquentModelRelationFinder
             Relation::RELATION_MORPH_TO,
             Relation::RELATION_MORPH_ONE,
             Relation::RELATION_MORPH_MANY,
+            Relation::RELATION_MORPH_TO_MANY,
+            Relation::RELATION_MORPHED_BY_MANY,
         ]);
     }
 
@@ -311,6 +313,8 @@ trait EloquentModelRelationFinder
             Relation::RELATION_BELONGS_TO_MANY,
             Relation::RELATION_MORPH_ONE,
             Relation::RELATION_MORPH_MANY,
+            Relation::RELATION_MORPH_TO_MANY,
+            Relation::RELATION_MORPHED_BY_MANY,
         ]);
     }
 

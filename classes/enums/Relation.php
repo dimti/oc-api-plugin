@@ -14,4 +14,7 @@ enum Relation: string
     case RELATION_MORPH_TO = 'morphTo';
     case RELATION_MORPH_ONE = 'morphOne';
     case RELATION_MORPH_MANY = 'morphMany';
+
+    case RELATION_MORPH_TO_MANY = 'morphToMany';
+    case RELATION_MORPHED_BY_MANY = 'morphedByMany';
 }

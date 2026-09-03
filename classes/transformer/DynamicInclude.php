@@ -186,6 +186,14 @@ trait DynamicInclude
             $this->isSingularRelation = false;
 
             $this->relationDefinition = $this->getModel()->belongsToMany[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphToMany)) {
+            $this->isSingularRelation = false;
+
+            $this->relationDefinition = $this->getModel()->morphToMany[$this->getFieldName()];
+        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphedByMany)) {
+            $this->isSingularRelation = false;
+
+            $this->relationDefinition = $this->getModel()->morphedByMany[$this->getFieldName()];
         } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasMany)) {
             $this->isSingularRelation = false;
 

@@ -227,7 +227,7 @@ class ApiController extends Controller
                     if (count($includeParts) && !$this->isMorphToRelation($model, $maybeRelation)) {
                         $nerestPossibleWiths($this->getRelationModel($model, $maybeRelation), $includeParts, $previousParts);
                     }
-                } elseif (count($includeParts) === 0) {
+                } else {
                     $this->appendEagerLoadFromInclude(
                         $model,
                         $maybeRelation,

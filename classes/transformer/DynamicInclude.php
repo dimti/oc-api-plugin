@@ -99,7 +99,9 @@ trait DynamicInclude
         if ($this->currentFieldIsRelation()) {
             if ($this->isCountRelation($model, $fieldName)) {
                 return new Primitive($model->$fieldName->first()?->count ?? 0);
-            } elseif ($this->hasNoValue()) {
+            }
+
+            if ($this->hasNoValue()) {
                 return $this->getNullResource();
             }
 
@@ -170,58 +172,16 @@ trait DynamicInclude
     {
         $this->unsetRelatedModelClass();
 
-        if (array_key_exists($this->getFieldName(), $this->getModel()->belongsTo)) {
-            $this->isSingularRelation = true;
+        $relationType = $this->getModel()->getRelationType($this->getFieldName());
 
-            $this->relationDefinition = $this->getModel()->belongsTo[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->attachOne)) {
-            $this->isSingularRelation = true;
+        if ($relationType) {
+            $this->isSingularRelation = in_array($relationType, ['belongsTo', 'hasOne', 'attachOne', 'morphOne', 'hasOneThrough', 'morphTo']);
 
-            $this->relationDefinition = $this->getModel()->attachOne[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasOne)) {
-            $this->isSingularRelation = true;
+            $this->relationDefinition = $this->getModel()->getRelationTypeDefinition($relationType, $this->getFieldName());
 
-            $this->relationDefinition = $this->getModel()->hasOne[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->belongsToMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->belongsToMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphToMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->morphToMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphedByMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->morphedByMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->hasMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->attachMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->attachMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphOne)) {
-            $this->isSingularRelation = true;
-
-            $this->relationDefinition = $this->getModel()->morphOne[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphMany)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->morphMany[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasOneThrough)) {
-            $this->isSingularRelation = true;
-
-            $this->relationDefinition = $this->getModel()->hasOneThrough[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->hasManyThrough)) {
-            $this->isSingularRelation = false;
-
-            $this->relationDefinition = $this->getModel()->hasManyThrough[$this->getFieldName()];
-        } else if (array_key_exists($this->getFieldName(), $this->getModel()->morphTo)) {
-            $this->isSingularRelation = true;
-
-            $this->relationDefinition = $this->model->getAttribute($this->getFieldName() . '_type');
+            if ($relationType === 'morphTo' && !$this->relationDefinition) {
+                $this->relationDefinition = $this->model->getAttribute($this->getFieldName() . '_type');
+            }
         } else if (method_exists($this->model, $this->getFieldName())
             && method_exists($this->model, sprintf(
                 'get%sModelClassAndIsSingular',

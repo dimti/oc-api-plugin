@@ -206,7 +206,7 @@ trait DynamicInclude
 
         if (strpos($this->getRelatedModelClass(), 'File') !== false) {
             $this->setTransformerClass(static::getDefaultFileModelTransformer());
-        } elseif (strpos($this->getRelatedModelClass(), 'User') !== false) {
+        } elseif (\Str::startswith(class_basename($this->getRelatedModelClass()), 'User') !== false) {
             $this->setTransformerClass(static::getDefaultUserModelTransformer());
         } else {
             $transformerClass = str_replace('Models', 'Transformers', $this->getRelatedModelClass()) . 'Transformer';
